@@ -649,7 +649,9 @@ def buildmodels(options,pam_updates):
     else:
         mymodname = "Jul24_keras"
 
-    from martinModels import models
+    #from martinModels import models
+    from cristinaModels import models
+
     for m in models:
         m['pams'].update({'nBits_encod':nBits_encod})
     #models = [
