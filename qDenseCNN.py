@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampli
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 import qkeras as qkr
-from qkeras import QDense, QConv2D, QActivation
+from qkeras import QDense, QConv2D, QActivation, QBatchNormalization
 #from qkeras.qlayers import QConv2D,QActivation,QDense
 import numpy as np
 import json
@@ -220,6 +220,9 @@ class qDenseCNN:
                 else:
                     x = MaxPooling2D((2, 2), padding='same', name="mp_"+str(i))(x)
 
+        x = QBatchNormalization(#gamma_quantizer=quantized_relu_po2(4,8),variance_quantizer=quantized_relu_po2(6),beta_quantizer=quantized_po2(4, 4),
+                                #gamma_range=8,beta_range=4,
+                                name="qbn_0")(x)
         shape = K.int_shape(x)
         x = QActivation(accum_Qbits, name='accum1_qa')(x)
         x = Flatten(name="flatten")(x)
