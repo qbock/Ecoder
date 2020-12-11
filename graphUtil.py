@@ -11,11 +11,12 @@ import numpy as np
 def loadModel(f_model):
     with open(f_model,'r') as f:
         if 'QActivation' in f.read():
-            from qkeras import QDense, QConv2D, QActivation,quantized_bits,Clip,QInitializer
+            from qkeras import QDense, QConv2D, QActivation,quantized_relu,quantized_bits,Clip,QInitializer
             f.seek(0)
             model = model_from_json(f.read(),
                                     custom_objects={'QActivation':QActivation,
                                                     'quantized_bits':quantized_bits,
+                                                    'quantized_relu':quantized_relu,
                                                     'QConv2D':QConv2D,
                                                     'QDense':QDense,
                                                     'Clip':Clip,
@@ -80,6 +81,19 @@ def loadFrozenGraph(graph,printGraph=False):
                                     print_graph=printGraph)
     return frozen_func
 
+#load performance pickles with flist = [{'label','p'}]
+def loadPickles(flist):
+    perf_dict = {}
+    for f in flist:
+        f_path = f['p']
+        with open(f_path,'rb') as f_pkl:
+            d = pickle.load(f_pkl)
+            if 'label' in f.keys():
+                for k in d.keys():
+                    perf_dict[f['label']] = d[k]
+            else:
+                perf_dict.update(d)
+    return perf_dict
 
 ## Helper function to load graph
 def wrap_frozen_graph(graph_def, inputs,outputs,print_graph=False):
@@ -111,7 +125,7 @@ def layerOutput(model,layer_index,x):
     return m.predict(x)
 
 ## plotAll the weights from model
-def plotWeights(model,nBins=20):
+def plotWeights(model,nBins=50):
     plt.figure(figsize=(8,6))
     for ilayer in range(1,len(model.layers)):
         if len(model.layers[ilayer].get_weights())>0:
@@ -148,3 +162,63 @@ def plotOutputs(model,x,layer_indices=[],nBins=10):
     plt.savefig("hist_outputs_%s.pdf"%str_layers)
     plt.clf()
     return
+
+def plothistory(hist_dict,diff=False,title=None):
+    plt.figure(figsize=(8,6))
+    linestyles  = ['-', '--', '-.', ':',',']
+    for i,(label,data) in enumerate(hist_dict.items()):
+        print(label,data.keys())
+        if diff:
+            plt.plot(np.abs(np.array(data['loss'])-np.array(data['val_loss'])),label=label)      
+        else:
+#            plt.plot(data['loss']    ,marker = ls=linestyles[i],c='tab:blue',label=label+"_train")
+            line, = plt.plot(data['loss']    ,label=label+"_train")
+            plt.plot(data['val_loss'],ls=linestyles[1],c=line.get_color(),label=label+"_test")     
+    plt.xlabel('epochs')
+    if diff:
+        plt.ylabel('Abs. Loss difference(Train-Test)')        
+    else:
+        plt.ylabel('Loss')
+    plt.legend(loc='upper right',title=title)        
+    plt.yscale('log')
+    return
+
+
+def plotEMD(flist):
+    perf_dict = loadPickles(flist)
+    eval_settings={
+        # compression algorithms, autoencoder and more traditional benchmarks
+        'algnames' : ['ae','stc','thr_lo','thr_hi','bc'],
+        # metrics to compute on the validation dataset
+        'metrics' : {
+            'EMD'      :emd,
+            #'dMean':d_weighted_mean,
+            #'dRMS':d_abs_weighted_rms,
+        },
+        "occ_nbins"   :12,
+        "occ_range"   :(0,24),
+        "occ_bins"    : [0,2,5,10,15],
+        "chg_nbins"   :20,
+        "chg_range"   :(0,200),
+        "chglog_nbins":10,
+        "chglog_range":(0,2.5),
+        "chg_bins"    :[0,2,5,10,50],
+        "occTitle"    :r"occupancy [1 MIP$_{\mathrm{T}}$ TCs]"       ,
+        "logMaxTitle" :r"log10(Max TC charge/MIP$_{\mathrm{T}}$)",
+        "logTotTitle" :r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
+        'ylim'        :None,
+    }
+    metrics = eval_settings['metrics']
+
+    for mname in metrics:
+        chgs=[]
+        occs=[]
+        for model_name in perf_dict:
+#            print(model_name)
+            plots = perf_dict[model_name]
+            occs += [(model_name, plots["occ_"+mname+"_ae"])]
+            chgs += [(model_name, plots["chg_"+mname+"_ae"])]        
+        ylim_occ = (0,4)
+        ylim_chg = None        
+        OverlayPlots(occs,"ae_comp_occ_"+mname,xtitle=eval_settings['occTitle'],ytitle=mname,ylim=ylim_occ)
+        OverlayPlots(chgs,"ae_comp_chgs_"+mname,xtitle=eval_settings['logTotTitle'],ytitle=mname,ylim=ylim_chg)

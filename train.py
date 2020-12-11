@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import optparse
-import math
 from tensorflow.python.client import device_lib
 from tensorflow.keras import callbacks
 from tensorflow import keras as kr
@@ -14,8 +13,6 @@ import matplotlib.pyplot as plt
 import scipy.stats
 from qkeras import get_quantizer,QActivation
 from qkeras.utils import model_save_quantized_weights
-import uproot
-##from utils import plotHist
 
 import numba
 import json
@@ -52,12 +49,14 @@ def normalize(data,rescaleInputToMax=False, sumlog2=True):
         sums_log2.append( 2**(np.floor(np.log2(data[i].sum()))) )
         if sumlog2:
             data[i] = 1.*data[i]/(sums_log2[-1] if sums_log2[-1] else 1.)
-        efif rescaleInputToMax:
+        elif rescaleInputToMax:
             data[i] = 1.*data[i]/(data[i].max() if data[i].max() else 1.)
         else:
             data[i] = 1.*data[i]/(data[i].sum() if data[i].sum() else 1.)
-    if sumlog2: data,np.array(maxes),np.array(sums_log2)
-    return data,np.array(maxes),np.array(sums)
+    if sumlog2:
+        return  data,np.array(maxes),np.array(sums_log2)
+    else:
+        return data,np.array(maxes),np.array(sums)
 
 @numba.jit
 def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
@@ -66,7 +65,7 @@ def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
             norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].max() if norm_data[i].max() else 1.)
         else:
             if sumlog2:
-                sumlog2 = 2**(np.floor(np.log2(data[i].sum())))
+                sumlog2 = 2**(np.floor(np.log2(norm_data[i].sum())))
                 norm_data[i] =  norm_data[i] * maxvals[i] / (sumlog2 if sumlog2 else 1.)
             else:
                 norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].sum() if norm_data[i].sum() else 1.)
@@ -79,13 +78,12 @@ def StringToTextFile(fname,s):
 def plotHist(vals,name,odir='.',xtitle="",ytitle="",nbins=40,lims=None,
              stats=True, logy=False, leg=None, weights=None):
     plt.figure(figsize=(6,4))
-    if weights is not None:
+    if leg:
+        n, bins, patches = plt.hist(vals, nbins, range=lims, label=leg)
+    elif weights is not None:
         n, bins, patches = plt.hist(vals, nbins, range=lims, histtype='step', weights=weights)
     else:
-        if leg:
-            n, bins, patches = plt.hist(vals, nbins, range=lims, label=leg,  histtype='step')
-        else:
-            n, bins, patches = plt.hist(vals, nbins, range=lims,  histtype='step')
+        n, bins, patches = plt.hist(vals, nbins, range=lims)
     # print('bins',bins)
     # print('n',n)
     ax = plt.gca()
@@ -126,6 +124,8 @@ def getWeights(vals, n=None, a=None, b=None):
     return np.array([1./contents[b] for b in _bins]) # must be filled by construction///
     #return np.array([1./contents[b] if contents[b] else 1.0 for b in _bins])
 
+
+
 def plotProfile(x,y,name,odir='.',xtitle="",ytitle="Entries",nbins=40,lims=None,
                 stats=True, logy=False, leg=None, text="", weights=None):
 
@@ -143,7 +143,7 @@ def plotProfile(x,y,name,odir='.',xtitle="",ytitle="Entries",nbins=40,lims=None,
     bin_centers = (bin_edges[:-1] + bin_edges[1:])/2.
 
     if weights is not None:
-        #print('bin_edges ',bin_edges)
+        print('bin_edges ',bin_edges)
         new_median = []
         new_loe = []
         new_hie = []
@@ -159,12 +159,12 @@ def plotProfile(x,y,name,odir='.',xtitle="",ytitle="Entries",nbins=40,lims=None,
             new_median.append(median[i]/np.sum(weights[x_bin]))
             new_loe.append(1/math.sqrt(np.sum(weights[x_bin])))
             new_hie.append(1/math.sqrt(np.sum(weights[x_bin])))
-        median = np.array(new_median) 
-        loe = np.array(new_loe)
-        hie = np.array(new_hie)
-    #weight_median = median/sum_weights_inthatbin
-    #sum_weights = 
-    #bin_centers = bin_centers*
+            median = np.array(new_median) 
+            loe = np.array(new_loe)
+            hie = np.array(new_hie)
+            #weight_median = median/sum_weights_inthatbin
+            #sum_weights = 
+            #bin_centers = bin_centers*
 
     # means_result = scipy.stats.binned_statistic(x, [y, y**2], bins=nbins, statistic='mean')
     # means, means2 = means_result.statistic
@@ -252,7 +252,6 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
 
     es = callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=3)
     #reduce_lr = callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,patience=3)
-
     if train_weights != None:
         history = autoencoder.fit(train_input,train_target,
                                   #sample_weight=train_weights,
@@ -260,7 +259,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
                                   batch_size=500,
                                   shuffle=True,
                                   validation_data=(val_input,val_input),
-                                  callbacks=[es,reduce_lr]
+                                  callbacks=[es]
         )
     else:
         history = autoencoder.fit(train_input,train_target,
@@ -268,7 +267,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
                                   batch_size=500,
                                   shuffle=True,
                                   validation_data=(val_input,val_input),
-                                  callbacks=[es,reduce_lr]
+                                  callbacks=[es]
         )
 
     plt.figure(figsize=(8,6))
@@ -308,7 +307,8 @@ def save_models(autoencoder, name, isQK=False):
        with open('encoder_'+name+'.pkl','wb') as f:       pickle.dump(encoder_qWeight,f)
        encoder = graphUtil.setQuanitzedWeights(encoder,'encoder_'+name+'.pkl')
        print('shape ecoder layers ',encoder.layers)
-       print('unique weights',len(np.unique(encoder.layers[6].get_weights()[0])))
+       #print('unique weights',len(np.unique(encoder.layers[6].get_weights()[0])))
+       print('unique weights',len(np.unique(encoder.layers[5].get_weights()[0])))
     graphUtil.outputFrozenGraph(encoder,'encoder_'+name+'.pb')
     graphUtil.outputFrozenGraph(encoder,'encoder_'+name+'.pb.ascii','./',True)
     graphUtil.outputFrozenGraph(decoder,'decoder_'+name+'.pb')
@@ -660,9 +660,8 @@ def buildmodels(options,pam_updates):
     else:
         mymodname = "Jul24_keras"
 
-    #from martinModels import models
-    from cristinaModels import models
-
+    #from cristinaModels import models
+    from martinModels import models
     for m in models:
         if not 'nBits_encod' in m['pams'].keys(): 
             m['pams'].update({'nBits_encod':nBits_encod})
@@ -813,7 +812,7 @@ def compareModels(models,perf_dict,eval_settings,options):
                 chgs += [(short_model, plots["chg_"+mname+"_ae"])]
                 occs += [(short_model, plots["occ_"+mname+"_ae"])]
                 if options.getenergy:
-                    # weighted
+                    # weighted                                                                                                                                                                           
                     w_chgs += [(short_model, plots["weight_chg_"+mname+"_ae"])]
                     w_occs += [(short_model, plots["weight_occ_"+mname+"_ae"])]
 
@@ -822,7 +821,7 @@ def compareModels(models,perf_dict,eval_settings,options):
             OverlayPlots(occs,"ae_comp_occ_"+mname,xtitle=occTitle,ytitle=mname)
             if options.getenergy:
                 OverlayPlots(w_chgs,"ae_comp_weight_chg_"+mname,xtitle=xt,ytitle=mname)
-                OverlayPlots(w_occs,"ae_comp_weight_occ_"+mname,xtitle=occTitle,ytitle=mname)
+                OverlayPlots(w_occs,"ae_comp_weight_occ_"+mname,xtitle=occTitle,ytitle=mname)            
 
             # binned profiles 
             #for iocc, occ_lo in enumerate(occ_bins):
@@ -868,7 +867,7 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
     #ae_out_frac = normalize(cnn_deQ.copy())
     ### axilliary arrays with shapes 
     occupancy_1MT = aux_arrs['occupancy_1MT']
-    if options.getenergy:
+   if options.getenergy:
         simenergy = aux_arrs['simenergy']
 
     # visualize conv2d activations
@@ -997,8 +996,8 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
             model[name+'_err'] = np.round(np.std(vals), 3)
             summary_dict[name]        = model[name]
             summary_dict[name+'_err'] = model[name+'_err']
-            
-            # save this in a root file
+
+            # save this in a root file                                                                                                                                                                    
             print('occ bins ',occ_nbins, ' occ range ',occ_range)
             print('chg bins ',chglog_nbins, ' range ',chglog_range)
             ff = uproot.recreate("tmp.root")
@@ -1012,9 +1011,10 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
                             "charges":np.log10(val_max),
                             "energyfrac":simenergy,
                         })
-            
+
             if options.getenergy:
                 vals_weighted = np.multiply(vals,simenergy)
+
             if(not options.skipPlot) and (not('zero_frac' in mname)):
                 # metric distribution
                 plotHist(vals,"hist_"+name,xtitle=longMetric[mname])
@@ -1022,10 +1022,10 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
                 plotHist(np.where(vals>-1e-9,1,0),"hist_iszero_"+name,xtitle=longMetric[mname])
                 # 1d profiles
                 plots["occ_"+name] = plotProfile(occupancy_1MT, vals,"profile_occ_"+name,
-                                                 nbins=occ_nbins, lims=occ_range,  
+                                                 nbins=occ_nbins, lims=occ_range,
                                                  xtitle=occTitle,ytitle=longMetric[mname])
                 plots["chg_"+name] = plotProfile(np.log10(val_max), vals,"profile_maxQ_"+name,ytitle=longMetric[mname],
-                                                 nbins=chglog_nbins, lims=chglog_range, 
+                                                 nbins=chglog_nbins, lims=chglog_range,
                                                  xtitle=logMaxTitle if options.rescaleInputToMax else logTotTitle)
                 if options.getenergy:
                     plots["energy_"+name] = plotProfile(simenergy, vals,"profile_fracsimE_"+name,ytitle=longMetric[mname],
@@ -1037,12 +1037,11 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
                     # 1d profiles
                     plots["weight_occ_"+name] = plotProfile(occupancy_1MT, vals_weighted,"profile_weight_occ_"+name,
                                                             nbins=occ_nbins, lims=occ_range,
-                                                            xtitle=occTitle,ytitle=longMetric[mname])  #,weights=simenergy)
+                                                            xtitle=occTitle,ytitle=longMetric[mname])  #,weights=simenergy)                                                                              
                     plots["weight_chg_"+name] = plotProfile(np.log10(val_max), vals_weighted,"profile_weight_maxQ_"+name,ytitle=longMetric[mname],
                                                             nbins=chglog_nbins, lims=chglog_range,
-                                                            xtitle=logMaxTitle if options.rescaleInputToMax else logTotTitle) #,weights=simenergy)
+                                                            xtitle=logMaxTitle if options.rescaleInputToMax else logTotTitle) #,weights=simenergy
 
-                #plotHist(vals[val_max<1],"hist_0chg1_"+name,xtitle=longMetric[mname])
                 #plotHist(vals[val_max<2],"hist_0chg2_"+name,xtitle=longMetric[mname])
                 #plotHist(vals[val_max<5],"hist_0chg5_"+name,xtitle=longMetric[mname])
                 #plotHist(vals[val_max<10],"hist_0chg10_"+name,xtitle=longMetric[mname])
@@ -1143,7 +1142,7 @@ def trainCNN(options, args, pam_updates=None):
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
     print("Is GPU available? ", tf.config.list_physical_devices('GPU'))
 
-    '''
+       
     if ("nElinks_%s"%options.nElinks not in options.inputFile):
        if not options.overrideInput:
          print ("Are you sure you're using the right input file??")
@@ -1151,12 +1150,12 @@ def trainCNN(options, args, pam_updates=None):
          print ("Otherwise BC, STC settings will be wrong!!")
          print ("Exiting...")
          exit(0)
-    '''
+
     # from tensorflow.keras import backend
     # backend.set_image_data_format('channels_first')
+    cols = ['CALQ_%i'%c for c in range(0, 48)]
     if os.path.isdir(options.inputFile):
         df_arr = []
-        cols = ['CALQ_%i'%c for c in range(0, 48)]
         for infile in os.listdir(options.inputFile):
             if os.path.isdir(options.inputFile+infile): continue
             infile = os.path.join(options.inputFile,infile)
@@ -1165,9 +1164,29 @@ def trainCNN(options, args, pam_updates=None):
         mask_isFull = np.isin(data.ModType.values,['FI','FM','FO'])
         if options.maskpartials:
             print('mask partials')
-            data = data[mask_isFull] # mask partial modules   
+            data = data[mask_isFull] # mask partial modules                                                                                                                                             
         if options.maskenergies:
-            # mask energies more than 0
+            # mask energies more than 0                                                                                                                                                                 
+            mask_energy = data['SimEnergyFraction'].astype('float64') > 0.05
+            data = data[mask_energy]
+        if options.getenergy:
+            print('getting energy')
+            mask_occ = (data[cols].astype('float64').sum(axis=1) != 0)
+            energy = data[mask_occ]['SimEnergyFraction']
+            energy = energy.astype('float64')
+            simEnergy = data[mask_occ]['SimEnergyTotal'].astype('float64')
+            eventSimEnergy = data[mask_occ]['EventSimEnergyTotal'].astype('float64')
+        data = data[cols] # select only trigger cell charges columns                                                                                                                                    
+        data = data.astype('float64')
+        data = data.loc[(data.sum(axis=1) != 0)] #drop rows where occupancy = 0                                                                                                                          
+        data.describe()
+    else:
+        data = pd.read_csv(options.inputFile, nrows = options.nrowsPerFile)
+        mask_isFull = np.isin(data.ModType.values,['FI','FM','FO'])
+        if options.maskpartials:
+            print('mask partials')
+            data = data[mask_isFull] # mask partial modules
+        if options.maskenergies:
             mask_energy = data['SimEnergyFraction'].astype('float64') > 0.05
             data = data[mask_energy]
         if options.getenergy:
@@ -1179,29 +1198,7 @@ def trainCNN(options, args, pam_updates=None):
             eventSimEnergy = data[mask_occ]['EventSimEnergyTotal'].astype('float64')
         data = data[cols] # select only trigger cell charges columns
         data = data.astype('float64')
-        data = data.loc[(data.sum(axis=1) != 0)] #drop rows where occupancy = 0
-        data.describe()
-    else:
-        cols = ['CALQ_%i'%c for c in range(0, 48)]
-        data = pd.read_csv(options.inputFile, nrows = options.nrowsPerFile)
-        mask_isFull = np.isin(data.ModType.values,['FI','FM','FO'])
-        if options.maskpartials:
-            print('mask partials')
-            data = data[mask_isFull] # mask partial modules  
-        if options.maskenergies:
-            # mask energies more than 0
-            mask_energy = data['SimEnergyFraction'].astype('float64') > 0.05
-            data = data[mask_energy]
-        if options.getenergy:
-            print('getting energy')
-            mask_occ = (data[cols].astype('float64').sum(axis=1) != 0)
-            energy = data[mask_occ]['SimEnergyFraction']
-            energy = energy.astype('float64')
-            simEnergy = data[mask_occ]['SimEnergyTotal'].astype('float64')
-            eventSimEnergy = data[mask_occ]['EventSimEnergyTotal'].astype('float64')
-        data = data[cols] # select only trigger cell charges columns                                                                                                                             
-        data = data.astype('float64')
-        data = data.loc[(data.sum(axis=1) != 0)] #drop rows where occupancy = 0
+        data = data.loc[(data.sum(axis=1) != 0)] #drop rows where occupancy = 0                                                                                                                         
         data.describe()
 
     print('input data shape:',data.shape)
@@ -1212,6 +1209,14 @@ def trainCNN(options, args, pam_updates=None):
         doubled_data = double_data(data_values.copy())
         print ('doubled the data. new shape is',doubled_data.shape)
         data_values = doubled_data
+
+    # plotHist(data.values.flatten(),"TCQ_all",xtitle="Q (all cells)",ytitle="TCs",
+    #              stats=False,logy=True,nbins=200,lims=[-0.5,199.5])
+    # from 20 to 200 ADCs, distribution is approx f(x) = -8.05067e+03 + 1.26147e+06/x + 1.48390e+08/x^2
+    # for nelink=2 sample
+    # >>> f2 =  ROOT.TF1( "f2", "[1]/x+[0]+[2]/pow(x,2)",20,199)
+    # >>> h.Fit(f2,"","",20,199)
+
 
     occupancy_all = np.count_nonzero(data_values,axis=1)
     occupancy_all_1MT = np.count_nonzero(data_values>35,axis=1)
@@ -1300,20 +1305,19 @@ def trainCNN(options, args, pam_updates=None):
         m.init()
         shaped_data                     = m.prepInput(normdata)
         if options.evalOnly:
-            #val_input = shaped_data
-            #val_ind = np.array(range(len(shaped_data)))
-            #train_input = val_input[:0] #empty with correct shape
-            #train_ind = val_ind[:0]
-            val_input, train_input, val_ind, train_ind = split(shaped_data)
+            val_input = shaped_data
+            val_ind = np.array(range(len(shaped_data)))
+            train_input = val_input[:0] #empty with correct shape
+            train_ind = val_ind[:0]
+            #val_input, train_input, val_ind, train_ind = split(shaped_data)
             if options.getenergy:
                 val_energy = energy.iloc[val_ind]
             print('training shape',train_input.shape)
             print('validation shape',val_input.shape)
         else:
             val_input, train_input, val_ind, train_ind = split(shaped_data)
-            if options.getenergy:
+           if options.getenergy:
                 val_energy = energy.iloc[val_ind]
-
         m_autoCNN , m_autoCNNen         = m.get_models()
         model['m_autoCNN'] = m_autoCNN
         model['m_autoCNNen'] = m_autoCNNen
@@ -1368,7 +1372,8 @@ def trainCNN(options, args, pam_updates=None):
         output_calQ_fr = m.mapToCalQ(cnn_deQ)   # shape = (N,48) in CALQ order
 
         print("Restore normalization")
-        input_Q_abs = np.array([input_Q[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))])
+        #input_Q_abs = np.array([input_Q[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))])   
+        input_Q_abs = np.array([input_Q[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit
         input_calQ  = np.array([input_calQ[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order
         output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if options.rescaleOutputToMax else val_sum, rescaleOutputToMax=options.rescaleOutputToMax)
 
@@ -1390,8 +1395,8 @@ def trainCNN(options, args, pam_updates=None):
         #occupancy_1MT = np.count_nonzero(input_Q_abs.reshape(len(input_Q),48)>1.,axis=1)
         occupancy_0MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48),axis=1)
         occupancy_1MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48)>1.,axis=1)
-        #if options.getenergy:
-        #    print('shape occ 0MT ', occupancy_0MT.shape, ' shape energy ', val_energy.shape, 'input_Q shape ',input_Q.shape, ' N ',N_csv)
+        #if options.getenergy:                                                                                                                                                                          
+        # print('shape occ 0MT ', occupancy_0MT.shape, ' shape energy ', val_energy.shape, 'input_Q shape ',input_Q.shape, ' N ',N_csv)                                                                  
 
 
         charges = {
@@ -1406,11 +1411,11 @@ def trainCNN(options, args, pam_updates=None):
             'val_max'    : val_max,
         }
         aux_arrs = {
-            'occupancy_1MT':occupancy_1MT,
+           'occupancy_1MT':occupancy_1MT 
         } 
         if options.getenergy:
             aux_arrs['simenergy'] = val_energy
-        
+
         #perf_dict[model_name] , model['summary_dict'] = evalModel(model,charges,aux_arrs,eval_settings,options)
         perf_dict[model['label']] , model['summary_dict'] = evalModel(model,charges,aux_arrs,eval_settings,options)
 

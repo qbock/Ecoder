@@ -161,6 +161,7 @@ models = [
 
 for m in models:
    m.update({'isQK':False})
+   #m.update({'isQK':True})
    m.update({'ws':''})
    if not 'isDense2D' in m.keys(): m.update({'isDense2D':False})
    for p,v in defaults.items():

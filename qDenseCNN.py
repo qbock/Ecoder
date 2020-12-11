@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampli
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 import qkeras as qkr
-from qkeras import QDense, QConv2D, QActivation, QBatchNormalization
+from qkeras import QDense, QConv2D, QActivation
 #from qkeras.qlayers import QConv2D,QActivation,QDense
 import numpy as np
 import json
@@ -52,6 +52,8 @@ class qDenseCNN(denseCNN):
             'CNN_layer_nodes': [8],  # n_filters
             'CNN_kernel_size': [3],
             'CNN_pool': [False],
+            'CNN_padding'      : ['same'],
+            'CNN_strides'      : [(1,1)],
             'Dense_layer_nodes': [],  # does not include encoded layer
             'encoded_dim': 16,
             'shape': (4, 4, 3),
@@ -82,6 +84,8 @@ class qDenseCNN(denseCNN):
 
         CNN_layer_nodes = self.pams['CNN_layer_nodes']
         CNN_kernel_size = self.pams['CNN_kernel_size']
+        CNN_padding       = self.pams['CNN_padding']
+        CNN_strides       = self.pams['CNN_strides']
         CNN_pool = self.pams['CNN_pool']
         Dense_layer_nodes = self.pams['Dense_layer_nodes']  # does not include encoded layer
         channels_first = self.pams['channels_first']
@@ -98,9 +102,11 @@ class qDenseCNN(denseCNN):
 
         input_Qbits  = self.GetQbits(nBits_input, nBits_input['keep_negative']) 
         accum_Qbits  = self.GetQbits(nBits_accum, nBits_accum['keep_negative'])
+        qa_accum     = qkr.quantized_relu(bits=nBits_accum['total'],integer=nBits_accum['integer'])
         dense_Qbits  = self.GetQbits(nBits_dense, nBits_dense['keep_negative'])
         conv_Qbits   = self.GetQbits(nBits_conv , nBits_conv ['keep_negative'])
         encod_Qbits  = self.GetQbits(nBits_encod, nBits_encod['keep_negative'])
+        qa_encod    = qkr.quantized_relu(bits = nBits_encod['total'],integer=nBits_encod['integer'])
         # keeping weights and bias same precision for now
 
         # define model
@@ -108,11 +114,11 @@ class qDenseCNN(denseCNN):
         x = QActivation(input_Qbits, name='input_qa')(x)
         for i, n_nodes in enumerate(CNN_layer_nodes):
             if channels_first:
-                x = QConv2D(n_nodes, CNN_kernel_size[i], activation='relu', padding='same',
-                            data_format='channels_first', name="conv2d_"+str(i)+"_m",
+                x = QConv2D(n_nodes, CNN_kernel_size[i], padding=CNN_padding[i],
+                            data_format='channels_first', name="conv2d_"+str(i)+"_m", strides = CNN_strides[i],
                             kernel_quantizer=conv_Qbits, bias_quantizer=conv_Qbits)(x)
             else:
-                x = QConv2D(n_nodes, CNN_kernel_size[i], activation='relu', padding='same', name="conv2d_"+str(i)+"_m",
+                x = QConv2D(n_nodes, CNN_kernel_size[i], padding=CNN_padding[i], name="conv2d_"+str(i)+"_m", strides = CNN_strides[i],
                             kernel_quantizer=conv_Qbits, bias_quantizer=conv_Qbits)(x)
             if CNN_pool[i]:
                 if channels_first:
@@ -120,11 +126,8 @@ class qDenseCNN(denseCNN):
                 else:
                     x = MaxPooling2D((2, 2), padding='same', name="mp_"+str(i))(x)
 
-        x = QBatchNormalization(#gamma_quantizer=quantized_relu_po2(4,8),variance_quantizer=quantized_relu_po2(6),beta_quantizer=quantized_po2(4, 4),
-                                #gamma_range=8,beta_range=4,
-                                name="qbn_0")(x)
         shape = K.int_shape(x)
-        x = QActivation(accum_Qbits, name='accum1_qa')(x)
+        x = QActivation(qa_accum, name='accum1_qa')(x)
         x = Flatten(name="flatten")(x)
         
         # extended inputs fed forward to the dense layer
@@ -138,15 +141,15 @@ class qDenseCNN(denseCNN):
 
         # encoder dense nodes
         for i, n_nodes in enumerate(Dense_layer_nodes):
-            x = QDense(n_nodes, activation='relu', name="en_dense_"+str(i),
+            x = QDense(n_nodes,  name="en_dense_"+str(i),
                            kernel_quantizer=dense_Qbits, bias_quantizer=dense_Qbits)(x)
 
 
         #x = QDense(encoded_dim, activation='relu', name='encoded_vector',
         #                      kernel_quantizer=dense_Qbits, bias_quantizer=dense_Qbits)(x)
-        x = QDense(encoded_dim, activation=self.pams['activation'], name='encoded_vector',
+        x = QDense(encoded_dim, name='encoded_vector',
                               kernel_quantizer=dense_Qbits, bias_quantizer=dense_Qbits)(x)
-        encodedLayer = QActivation(encod_Qbits, name='encod_qa')(x)
+        encodedLayer = QActivation(qa_encod, name='encod_qa')(x)
 
         # Instantiate Encoder Model
         self.encoder = Model(inputs, encodedLayer, name='encoder')
@@ -172,10 +175,10 @@ class qDenseCNN(denseCNN):
                     x = UpSampling2D((2, 2), name="up_"+str(i))(x)
 
             if channels_first:
-                x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding='same',
+                x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i], strides = CNN_strides[i],
                                     data_format='channels_first', name="conv2D_t_"+str(i))(x)
             else:
-                x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding='same',
+                x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i], strides = CNN_strides[i],
                                     name="conv2D_t_"+str(i))(x)
 
         if channels_first:
@@ -186,7 +189,7 @@ class qDenseCNN(denseCNN):
         else:
             x = Conv2DTranspose(filters=self.pams['shape'][2], kernel_size=CNN_kernel_size[0], padding='same',
                                 name="conv2d_t_final")(x)
-        x = QActivation(input_Qbits, name='q_decoder_output')(x) #Verify this step needed?
+        #x = QActivation(input_Qbits, name='q_decoder_output')(x) #Verify this step needed?
         outputs = Activation('sigmoid', name='decoder_output')(x)
 
         self.decoder = Model(encoded_inputs, outputs, name='decoder')

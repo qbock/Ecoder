@@ -36,6 +36,7 @@ class denseCNN:
             'CNN_kernel_size'  : [3],
             'CNN_pool'         : [False],
             'CNN_padding'      : ['same'],
+            'CNN_strides'      : [(1,1)],
             'Dense_layer_nodes': [], #does not include encoded layer
             'encoded_dim'      : 16,
             'shape'            : (4,4,3),
@@ -115,6 +116,7 @@ class denseCNN:
         CNN_layer_nodes   = self.pams['CNN_layer_nodes']
         CNN_kernel_size   = self.pams['CNN_kernel_size']
         CNN_padding       = self.pams['CNN_padding']
+        CNN_strides       = self.pams['CNN_strides']
         CNN_pool          = self.pams['CNN_pool']
         Dense_layer_nodes = self.pams['Dense_layer_nodes'] #does not include encoded layer
         channels_first    = self.pams['channels_first']
@@ -124,9 +126,9 @@ class denseCNN:
 
         for i,n_nodes in enumerate(CNN_layer_nodes):
             if channels_first:
-              x = Conv2D(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i],data_format='channels_first')(x)
+              x = Conv2D(n_nodes, CNN_kernel_size[i], activation='relu', strides=CNN_strides[i], padding=CNN_padding[i],data_format='channels_first')(x)
             else:
-              x = Conv2D(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i])(x)
+              x = Conv2D(n_nodes, CNN_kernel_size[i], activation='relu', strides=CNN_strides[i], padding=CNN_padding[i])(x)
             if CNN_pool[i]:
               if channels_first:
                 x = MaxPooling2D((2, 2), padding='same',data_format='channels_first')(x)
@@ -172,9 +174,9 @@ class denseCNN:
                   x = UpSampling2D((2, 2))(x)
             
             if channels_first:
-              x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i],data_format='channels_first')(x)
+              x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', strides=CNN_strides[i],padding=CNN_padding[i],data_format='channels_first')(x)
             else:
-              x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', padding=CNN_padding[i])(x)
+              x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', strides=CNN_strides[i],padding=CNN_padding[i])(x)
 
         if channels_first:
           #shape[0] will be # of channel
@@ -320,6 +322,8 @@ class denseCNN:
               for hp in v.get_config():
                 config[hp] = str(v.get_config()[hp])
               jsonpams[k] = config
+          elif  type(v)==type(telescopeMSE2):
+              jsonpams[k] =str(v) 
           else:
               jsonpams[k] = v 
       return jsonpams   
