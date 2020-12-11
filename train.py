@@ -42,25 +42,34 @@ def double_data(data):
     return np.array(doubled)
 
 @numba.jit
-def normalize(data,rescaleInputToMax=False):
+def normalize(data,rescaleInputToMax=False, sumlog2=True):
     maxes =[]
     sums =[]
+    sums_log2=[]
     for i in range(len(data)):
         maxes.append( data[i].max() )
         sums.append( data[i].sum() )
-        if rescaleInputToMax:
+        sums_log2.append( 2**(np.floor(np.log2(data[i].sum()))) )
+        if sumlog2:
+            data[i] = 1.*data[i]/(sums_log2[-1] if sums_log2[-1] else 1.)
+        efif rescaleInputToMax:
             data[i] = 1.*data[i]/(data[i].max() if data[i].max() else 1.)
         else:
             data[i] = 1.*data[i]/(data[i].sum() if data[i].sum() else 1.)
+    if sumlog2: data,np.array(maxes),np.array(sums_log2)
     return data,np.array(maxes),np.array(sums)
 
 @numba.jit
-def unnormalize(norm_data,maxvals,rescaleOutputToMax=False):
+def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
     for i in range(len(norm_data)):
         if rescaleOutputToMax:
             norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].max() if norm_data[i].max() else 1.)
         else:
-            norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].sum() if norm_data[i].sum() else 1.)
+            if sumlog2:
+                sumlog2 = 2**(np.floor(np.log2(data[i].sum())))
+                norm_data[i] =  norm_data[i] * maxvals[i] / (sumlog2 if sumlog2 else 1.)
+            else:
+                norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].sum() if norm_data[i].sum() else 1.)
     return norm_data
 
 def StringToTextFile(fname,s):
@@ -503,23 +512,23 @@ def visDisplays(index,input_Q,input_calQ,decoded_Q,encoded_Q=np.array([]),conv2d
     plt.savefig("%s_examples.pdf"%name)
     plt.close()
 
-    if conv2d is not None:
-        actImg      = conv2d.predict(inputImg.reshape(Nevents,4,4,3))
-        nFilters    = actImg.shape[-1]
-        nrows = nFilters 
-        fig, axs = plt.subplots(nrows, Nevents, figsize=(16, 20))
+    #if conv2d is not None:
+    #    actImg      = conv2d.predict(inputImg.reshape(Nevents,4,4,3))
+    #    nFilters    = actImg.shape[-1]
+    #    nrows = nFilters 
+    #    fig, axs = plt.subplots(nrows, Nevents, figsize=(16, 20))
 
-        for i in range(0,Nevents):
-            for k in range(0,nFilters):
-                if i==0:
-                    axs[k,i].set(xlabel='cell_x',ylabel='cell_y',title='Activation_%i'%k)
-                else:
-                    axs[k,i].set(xlabel='cell_x',title='Activation_%i'%k)
-                c1=axs[k,i].imshow(actImg[i,:,:,k])
-                plt.colorbar(c1,ax=axs[k,i])
+    #    for i in range(0,Nevents):
+    #        for k in range(0,nFilters):
+    #            if i==0:
+    #                axs[k,i].set(xlabel='cell_x',ylabel='cell_y',title='Activation_%i'%k)
+    #            else:
+    #                axs[k,i].set(xlabel='cell_x',title='Activation_%i'%k)
+    #            c1=axs[k,i].imshow(actImg[i,:,:,k])
+    #            plt.colorbar(c1,ax=axs[k,i])
 
-        plt.savefig("%s_activations.pdf"%name)
-        plt.close()
+    #    plt.savefig("%s_activations.pdf"%name)
+    #    plt.close()
   
 
 def visMetric(input_Q,decoded_Q,metric,name,odir,skipPlot=False):
@@ -655,7 +664,8 @@ def buildmodels(options,pam_updates):
     from cristinaModels import models
 
     for m in models:
-        m['pams'].update({'nBits_encod':nBits_encod})
+        if not 'nBits_encod' in m['pams'].keys(): 
+            m['pams'].update({'nBits_encod':nBits_encod})
     #models = [
 
         #{'name': "Aug11_qKeras_smoothSigmoid", 'ws': '', # custom
@@ -735,16 +745,21 @@ def buildmodels(options,pam_updates):
                                    (m['pams']['nBits_conv'] if 'nBits_conv' in m['pams'] else False))
             #mymodname += "_" + bit_str
    
-        mymodname = m['name'] 
-        if os.path.exists(options.odir+mymodname+"/"+mymodname+".hdf5"):
-            if options.retrain:
-                print('Found weights, but going to re-train as told.')            
-                m['ws'] = ""
+        mymodname = m['name']
+        ##default to use existing hdf5
+        if m['ws']=="": 
+            if os.path.exists(options.odir+mymodname+"/"+mymodname+".hdf5"):
+                if options.retrain:
+                    print('Found weights, but going to re-train as told.')            
+                    m['ws'] = ""
+                else:
+                    print('Found weights, using it by default')
+                    m['ws'] = mymodname+".hdf5"
             else:
-                print('Found weights, using it by default')
-                m['ws'] = mymodname+".hdf5"
+                print('Have not found trained weights in dir:',options.odir+mymodname+"/"+mymodname+".hdf5")
         else:
-            print('Have not found trained weights in dir:',options.odir+mymodname+"/"+mymodname+".hdf5")
+            print('Found user input weights, using ',m['ws'])
+
 
 
         if pam_updates:
@@ -897,14 +912,15 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
         alg_outs = {'ae' : ae_out}
     else:
         thr_lo_Q = np.where(input_Q_abs>1.35,input_Q_abs,0) # 1.35 transverse MIPs
-        stc_Q = make_supercells(input_Q_abs, stc16=(options.nElinks!=5))
+        #stc_Q = make_supercells(input_Q_abs, stc16=(options.nElinks!=5))
+        stc_Q = make_supercells(input_Q_abs, stc16=True)
         nBC={2:4, 3:6, 4:9, 5:14} #4, 6, 9, 14 (for 2,3,4,5 e-links)
         bc_Q = best_choice(input_Q_abs, nBC[options.nElinks]) 
         alg_outs = {
             'ae' : ae_out,
             'stc': stc_Q,
-            'bc': bc_Q,
-            'thr_lo': thr_lo_Q,
+            #'bc': bc_Q,
+            #'thr_lo': thr_lo_Q,
         }
 
     if False and options.full:
@@ -933,6 +949,12 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
     if (not options.skipPlot): plotHist([np.log10(val_max.flatten())],
                                         "maxQ_validation",xtitle=logMaxTitle,ytitle="Entries",
                                         stats=True,logy=True,nbins=chglog_nbins,lims = chglog_range)
+
+    if (not options.skipPlot):
+        for ilayer in range(0,len(model['m_autoCNNen'].layers)):
+            label = model['m_autoCNNen'].layers[ilayer].name
+            output,bins = np.histogram(graphUtil.layerOutput(model['m_autoCNNen'],ilayer,input_Q).flatten(),50)
+            plots['hist_output_%s'%ilayer] = output,bins,label
 
     # compute metrics for each alg
     for algname, alg_out in alg_outs.items():
@@ -1327,8 +1349,13 @@ def trainCNN(options, args, pam_updates=None):
                                 n_epochs = options.epochs,
                                 )
         else:
-            # do we want to save models if we do not train?
-            #save_models(m_autoCNN,model_name,model['isQK'])
+            #Retrain with input weights
+            if options.retrain:
+                history = train(m_autoCNN,m_autoCNNen,
+                                train_input,train_input,val_input,
+                                name=model_name,
+                                n_epochs = options.epochs,
+                                )
             pass
 
 
@@ -1339,11 +1366,18 @@ def trainCNN(options, args, pam_updates=None):
         input_calQ  = m.mapToCalQ(input_Q)   # shape = (N,48) in CALQ order
         print('input_calQ shape',input_calQ.shape)
         output_calQ_fr = m.mapToCalQ(cnn_deQ)   # shape = (N,48) in CALQ order
+
+        print("Restore normalization")
+        input_Q_abs = np.array([input_Q[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))])
+        input_calQ  = np.array([input_calQ[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order
+        output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if options.rescaleOutputToMax else val_sum, rescaleOutputToMax=options.rescaleOutputToMax)
+
         print("Save CSVs")
         ## csv files for RTL verification
         N_csv= (options.nCSV if options.nCSV>=0 else input_Q.shape[0]) # about 80k
         AEvol = m.pams['shape'][0]* m.pams['shape'][1] *  m.pams['shape'][2] 
-        np.savetxt("verify_input.csv", input_Q[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
+        np.savetxt("verify_input_ae.csv", input_Q[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
+        np.savetxt("verify_input_ae_abs.csv", input_Q_abs[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
         np.savetxt("verify_input_calQ.csv", input_calQ[0:N_csv].reshape(N_csv,48), delimiter=",",fmt='%.12f')
         np.savetxt("verify_output.csv",cnn_enQ[0:N_csv].reshape(N_csv,m.pams['encoded_dim']), delimiter=",",fmt='%.12f')
         np.savetxt("verify_decoded.csv",cnn_deQ[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
@@ -1352,10 +1386,6 @@ def trainCNN(options, args, pam_updates=None):
 
 
         # re-normalize outputs of AE for comparisons
-        print("Restore normalization")
-        input_Q_abs = np.array([input_Q[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))])
-        input_calQ  = np.array([input_calQ[i]*(val_max[i] if options.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order
-        output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if options.rescaleOutputToMax else val_sum, rescaleOutputToMax=options.rescaleOutputToMax)
         #occupancy_0MT = np.count_nonzero(input_Q_abs.reshape(len(input_Q),48),axis=1)
         #occupancy_1MT = np.count_nonzero(input_Q_abs.reshape(len(input_Q),48)>1.,axis=1)
         occupancy_0MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48),axis=1)
