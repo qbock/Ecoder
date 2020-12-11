@@ -29,7 +29,8 @@ class dense2DkernelCNN(denseCNN):
             'arrMask'          : [],
             'calQMask'         : [],
             'n_copy'           : 0,      # no. of copy for hi occ datasets
-            'loss'             : ''
+            'loss'             : '',
+            'optimizer'       : 'adam',
         }
 
         self.weights_f =weights_f
@@ -106,11 +107,16 @@ class dense2DkernelCNN(denseCNN):
            x2 = UpSampling2D( (2,2) )(x2) 
            x3 = UpSampling2D( (2,2) )(x3) 
 
-        ## Always use 1 filter
-        conv_t = Conv2DTranspose(1, CNN_kernel, activation=None, padding=CNN_padding, name='conv2d_transpose_1')
+        ## Use n filter here
+        conv_t = Conv2DTranspose(nnodes, CNN_kernel, activation='relu', padding=CNN_padding, name='conv2d_transpose_1')
         x1 = conv_t(x1)
         x2 = conv_t(x2)
         x3 = conv_t(x3)
+        ## Always use 1 filter
+        conv_t2 = Conv2DTranspose(1, CNN_kernel, activation=None, padding='same', name='conv2d_transpose_2')
+        x1 = conv_t2(x1)
+        x2 = conv_t2(x2)
+        x3 = conv_t2(x3)
 
         x = [x1,x2,x3]
         x = Concatenate(axis=-1,name='concat_2')(x)
@@ -125,18 +131,7 @@ class dense2DkernelCNN(denseCNN):
         if printSummary:
           self.autoencoder.summary()
 
-        if self.pams['loss']=="weightedMSE":
-            self.autoencoder.compile(loss=self.weightedMSE, optimizer='adam')
-            self.encoder.compile(loss=self.weightedMSE, optimizer='adam')
-        elif self.pams['loss'] == 'telescopeMSE':
-            self.autoencoder.compile(loss=telescopeMSE2, optimizer='adam')
-            self.encoder.compile(loss=telescopeMSE2, optimizer='adam')
-        elif self.pams['loss']!='':
-            self.autoencoder.compile(loss=self.pams['loss'], optimizer='adam')
-            self.encoder.compile(loss=self.pams['loss'], optimizer='adam')
-        else:
-            self.autoencoder.compile(loss='mse', optimizer='adam')
-            self.encoder.compile(loss='mse', optimizer='adam')
+        self.compileModels()
 
         CNN_layers=''
         if len(CNN_layer_nodes)>0:

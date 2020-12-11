@@ -30,6 +30,7 @@ from dense2DkernelCNN import dense2DkernelCNN
 import ot
 import graphUtil
 import plotWafer
+from get_flops import get_flops_from_model
 
 
 def double_data(data):
@@ -241,7 +242,8 @@ def split(shaped_data, validation_frac=0.2,randomize=False):
 def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=100, train_weights=None):
 
     es = callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=3)
-    reduce_lr = callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,patience=3)
+    #reduce_lr = callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,patience=3)
+
     if train_weights != None:
         history = autoencoder.fit(train_input,train_target,
                                   #sample_weight=train_weights,
@@ -770,7 +772,7 @@ def compareModels(models,perf_dict,eval_settings,options):
     logTotTitle =eval_settings["logTotTitle"]
 
 
-    summary_entries=['name','en_pams','tot_pams']
+    summary_entries=['name','en_pams','tot_pams','en_flops']
     for algname in algnames:
         for mname in metrics:
             name = mname+"_"+algname
@@ -922,6 +924,7 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
     summary_dict = {
         'name':model_name,
         'en_pams' : model['m_autoCNNen'].count_params(),
+        'en_flops' : get_flops_from_model(model['m_autoCNNen']),
         'tot_pams': model['m_autoCNN'].count_params(),
     }
     if (not options.skipPlot): plotHist(np.log10(val_sum.flatten()),
@@ -1114,9 +1117,9 @@ def evalModel(model,charges,aux_arrs,eval_settings,options):
 
 def trainCNN(options, args, pam_updates=None):
     # List devices:
-    #print(device_lib.list_local_devices())
-    #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-    #print("Is GPU available? ", tf.config.list_physical_devices('GPU'))
+    print(device_lib.list_local_devices())
+    print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+    print("Is GPU available? ", tf.config.list_physical_devices('GPU'))
 
     '''
     if ("nElinks_%s"%options.nElinks not in options.inputFile):
@@ -1165,7 +1168,7 @@ def trainCNN(options, args, pam_updates=None):
             data = data[mask_isFull] # mask partial modules  
         if options.maskenergies:
             # mask energies more than 0
-            mask_energy = data['SimEnergyFraction'].astype('float64') > 0.
+            mask_energy = data['SimEnergyFraction'].astype('float64') > 0.05
             data = data[mask_energy]
         if options.getenergy:
             print('getting energy')
@@ -1359,6 +1362,7 @@ def trainCNN(options, args, pam_updates=None):
         occupancy_1MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48)>1.,axis=1)
         #if options.getenergy:
         #    print('shape occ 0MT ', occupancy_0MT.shape, ' shape energy ', val_energy.shape, 'input_Q shape ',input_Q.shape, ' N ',N_csv)
+
 
         charges = {
             'input_Q'    : input_Q,               # shape = (N,4,4,3)
