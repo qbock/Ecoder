@@ -30,7 +30,7 @@ def loadModel(f_model):
         model.load_weights(hdf5)
     return model
 
-def setQuanitzedWeights(model,f_pkl):
+def setQuantizedWeights(model,f_pkl):
     with open(f_pkl, 'rb') as f:
         #weights as a dictionary
         ws = pickle.load(f)
