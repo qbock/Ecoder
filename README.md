@@ -3,7 +3,27 @@ Training ECON-T autoencoder model
 
 The original repository is (https://github.com/kakwok/Ecoder).
 
-## Training data
+## Setup
+
+Local setup using miniconda3
+```
+source install_miniconda3.sh # if conda is not installed in your computer
+source setup.sh # if you do not have the ecoder-env environment (i.e. if it is your first time)
+conda activate ecoder-env
+```
+
+Clone the repository (or your own fork):
+```
+git clone git@github.com:cmantill/Ecoder.git
+cd Ecoder/
+``` 
+
+To obtain qkeras (for training with quantized bit constraints), clone the repo locally: 
+```
+git clone https://github.com/google/qkeras
+```
+
+## Input data
 
 Get data from FNAL LPC:
 ```
@@ -16,20 +36,6 @@ or from cernbox: https://cernbox.cern.ch/index.php/s/YpAWu24aw6EaBk7
 Electron samples: (neLinks 2-5 with sim-Energy information) `/eos/uscms/store/user/dnoonan/AE_TrainingData/NewData/Skim/ele200PUData_TrainingData_SignalAllocation/`
 
 More information on how these training samples are produced can be found [here](https://github.com/cmantill/ECONAutoencoderStudy/blob/master/fragments/README.MD).
-
-## Setup
-
-Local setup using miniconda3
-```
-source install_miniconda3.sh # if conda is not installed in your computer
-source setup.sh # if you do not have the ecoder-env environment (i.e. if it is your first time)
-conda activate ecoder-env
-```
-
-To obtain qkeras (for training with quantized bit constraints), clone the repo locally: 
-```
-git clone https://github.com/google/qkeras
-```
 
 ## Training
 
