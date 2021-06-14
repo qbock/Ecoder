@@ -5,6 +5,18 @@ from telescope import telescopeMSE443,telescopeMSE663,telescopeMSE8x8
 
 edim = 16
 
+"""
+8x8 note: for newer versions of CALQ.csv files where the arrangement is fixed for the AE block
+we can swith to something like:
+np.array([0,1,2,3,4,5,6,7,
+         8,9,10,11,12,13,14,15,
+         16,17,18,19,20,21,22,23,
+         24,25,26,27,28,29,30,31,
+         32,33,34,35,32,33,34,35,
+         36,37,38,39,36,37,38,39,
+         40,41,42,43,40,41,42,43,
+         44,45,46,47,44,45,46,47])
+"""
 arrange_dict = {
     # 4x4x3 geometry
     # 3 4x4 images
@@ -29,18 +41,6 @@ arrange_dict = {
               },
     # 8x8x4 geometry
     # 1 8x8 image
-    """
-    note: for newer versions of CALQ.csv files where the arrangement is fixed for the AE bloc
-    we can swith to something like:
-    np.array([0,1,2,3,4,5,6,7,
-    8,9,10,11,12,13,14,15,
-    16,17,18,19,20,21,22,23,
-    24,25,26,27,28,29,30,31,
-    32,33,34,35,32,33,34,35,
-    36,37,38,39,36,37,38,39,
-    40,41,42,43,40,41,42,43,
-    44,45,46,47,44,45,46,47])
-    """
     '8x8': {'arrange': np.array([28,29,30,31,0,4,8,12,
                                  24,25,26,27,1,5,9,13,
                                  20,21,22,23,2,6,10,14,
@@ -129,7 +129,7 @@ arrange_dict['6x6x3_tp'] = {'arrange': arrange_dict['6x6x3']['arrange'].reshape(
                             'calQMask': arrange_dict['6x6x3']['calQMask'].reshape(3,36).transpose().flatten(),
                             }
 
-models_dict = [
+networks_by_name = [
     {'name':'8x8_c8_pool_tele',
      'label':'8x8_c[8]_pool',
      'arr_key':'8x8',
@@ -141,7 +141,7 @@ models_dict = [
          'CNN_pool':[True],
         },
     },
-    
+
     {'name':'8x8_c8_S2',
      'label':'8x8_c[8]_S2',
      'arr_key':'8x8',
@@ -153,6 +153,7 @@ models_dict = [
          'CNN_strides':[(2,2)],
         },
     },
+    
     {'name':'8x8_c8_S2_qK_RTL',
      'label':'8x8_c[8]_S2',
      'arr_key':'8x8',
@@ -165,6 +166,7 @@ models_dict = [
          'CNN_strides':[(2,2)],
         },
     },
+    
     {'name':'8x8_c8_S2_tele',
      'label':'8x8_c[8]_S2(tele)',
      'arr_key':'8x8',
@@ -182,12 +184,12 @@ defaults = {'channels_first': False,
             'encoded_dim': 16,
             }
                 
-for m in models_dict:
+for m in networks_by_name:
     arrange = arrange_dict[m['arr_key']]
-    m.update({
-        'arrange': arrange['arrange']
-        'arrMask': arrange['arrMask']
-        'calQMask': arrange['calQMask']
+    m['params'].update({
+        'arrange': arrange['arrange'],
+        'arrMask': arrange['arrMask'],
+        'calQMask': arrange['calQMask'],
     })
     
     if not 'isDense2D' in m.keys(): m.update({'isDense2D':False})

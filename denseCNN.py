@@ -78,7 +78,7 @@ class denseCNN:
             
     def prepInput(self,normData):
       shape = self.pams['shape']
-      
+
       if len(self.pams['arrange'])>0:
           arrange = self.pams['arrange']
           inputdata = normData[:,arrange]
@@ -87,7 +87,7 @@ class denseCNN:
       if len(self.pams['arrMask'])>0:
           arrMask = self.pams['arrMask']
           inputdata[:,arrMask==0]=0  #zeros out repeated entries
-      
+
       shaped_data = inputdata.reshape(len(inputdata),shape[0],shape[1],shape[2])
 
       if self.pams['n_copy']>0:
@@ -95,13 +95,6 @@ class denseCNN:
         occ_low = self.pams['occ_low']
         occ_hi = self.pams['occ_hi']
         shaped_data = self.cloneInput(shaped_data,n_copy,occ_low,occ_hi)
-      #if self.pams['skimOcc']:
-      #  occ_low = self.pams['occ_low']
-      #  occ_hi = self.pams['occ_hi']
-      #  nonzeroQs = np.count_nonzero(shaped_data.reshape(len(shaped_data),48),axis=1)
-      #  selection = np.logical_and(nonzeroQs<=occ_hi,nonzeroQs>occ_low)
-      #  shaped_data     = shaped_data[selection]
-
 
       return shaped_data
 
@@ -294,15 +287,6 @@ class denseCNN:
         decoded_Q = self.autoencoder.predict(x)
         encoded_Q = self.encoder.predict(x)
         encoded_Q = np.reshape(encoded_Q, (len(encoded_Q), self.pams['encoded_dim'], 1))
-        #s = self.pams['shape'] 
-        #if self.pams['channels_first']:
-        #    shaped_x  = np.reshape(x,(len(x),s[0]*s[1],s[2]))
-        #    decoded_Q = np.reshape(decoded_Q,(len(decoded_Q),s[0]*s[1],s[2]))
-        #    encoded_Q = np.reshape(encoded_Q,(len(encoded_Q),self.pams['encoded_dim'],1))
-        #else:
-        #    shaped_x  = np.reshape(x,(len(x),s[2]*s[1],s[0]))
-        #    decoded_Q = np.reshape(decoded_Q,(len(decoded_Q),s[2]*s[1],s[0]))
-        #    encoded_Q = np.reshape(encoded_Q,(len(encoded_Q),self.pams['encoded_dim'],1))
         return x,decoded_Q, encoded_Q
 
     def summary(self):
@@ -310,7 +294,7 @@ class denseCNN:
       self.decoder.summary()
       self.autoencoder.summary()
 
-    ##get pams for writing json
+    ##get params for writing json
     def get_pams(self):
       jsonpams={}      
       opt_classes = tuple(opt[1] for opt in inspect.getmembers(tf.keras.optimizers,inspect.isclass))
@@ -326,5 +310,5 @@ class denseCNN:
               jsonpams[k] =str(v) 
           else:
               jsonpams[k] = v 
-      return jsonpams   
-      
+      return jsonpams
+  

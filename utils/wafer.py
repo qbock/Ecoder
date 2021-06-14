@@ -4,7 +4,7 @@ from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 import numpy as np
 
-#trigger cell coordinates for drawing
+# trigger cell coordinates for drawing
 coords = np.array([[[ 7.30715907, 17.77361044],
         [ 7.30715907, 15.42983385],
         [ 9.33692493, 14.25794556],
@@ -197,14 +197,13 @@ coords = np.array([[[ 7.30715907, 17.77361044],
         [ 1.0402474 ,  4.58543439],
         [ 3.07001325,  3.4135461 ],
         [ 1.0402474 ,  2.24165781]]])
+
 #construct patches
 patches = []
 for coord in coords:
     patches.append(mpatches.Polygon(coord,True))
     
-    
-    
-def plotWafer(data, fig=None, ax=None, scale=None, log=False):
+def plot_wafer(data, fig=None, ax=None, scale=None, log=False):
     if fig is None or ax is None:
         fig,ax =plt.subplots(1,1)
     if log:

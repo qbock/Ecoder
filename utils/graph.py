@@ -8,7 +8,7 @@ import mplhep as hep
 import numpy as np
 
 ## Load qkeras/Keras model from json file
-def loadModel(f_model):
+def load_model(f_model):
     with open(f_model,'r') as f:
         if 'QActivation' in f.read():
             from qkeras import QDense, QConv2D, QActivation,quantized_relu,quantized_bits,Clip,QInitializer
@@ -30,7 +30,7 @@ def loadModel(f_model):
         model.load_weights(hdf5)
     return model
 
-def setQuantizedWeights(model,f_pkl):
+def set_quantized_weights(model,f_pkl):
     with open(f_pkl, 'rb') as f:
         #weights as a dictionary
         ws = pickle.load(f)
@@ -40,7 +40,7 @@ def setQuantizedWeights(model,f_pkl):
     return model
 
 ## Write model to graph
-def outputFrozenGraph(model,outputName="frozen_graph.pb",logdir='./',asText=False):
+def write_frozen_graph(model,outputName="frozen_graph.pb",logdir='./',asText=False):
     full_model = tf.function(lambda x: model(x))
     full_model = full_model.get_concrete_function(
         x=tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype))
@@ -57,7 +57,7 @@ def outputFrozenGraph(model,outputName="frozen_graph.pb",logdir='./',asText=Fals
                       as_text=asText)
 
 ## Load frozen graph
-def loadFrozenGraph(graph,printGraph=False):
+def load_frozen_graph(graph,printGraph=False):
     with tf.io.gfile.GFile(graph, "rb") as f:
         graph_def = tf.compat.v1.GraphDef()
         loaded = graph_def.ParseFromString(f.read())
@@ -82,7 +82,7 @@ def loadFrozenGraph(graph,printGraph=False):
     return frozen_func
 
 #load performance pickles with flist = [{'label','p'}]
-def loadPickles(flist):
+def load_pickles(flist):
     perf_dict = {}
     for f in flist:
         f_path = f['p']
@@ -117,7 +117,7 @@ def wrap_frozen_graph(graph_def, inputs,outputs,print_graph=False):
         tf.nest.map_structure(import_graph.as_graph_element, outputs))
 
 ## Get the output from layer_index of input x from a model
-def layerOutput(model,layer_index,x):
+def get_layer_output(model,layer_index,x):
     m = tf.keras.models.Model(
         inputs =model.inputs,
         outputs=model.layers[layer_index].output
@@ -125,7 +125,7 @@ def layerOutput(model,layer_index,x):
     return m.predict(x)
 
 ## plotAll the weights from model
-def plotWeights(model,nBins=50):
+def plot_weights(model,nBins=50):
     plt.figure(figsize=(8,6))
     for ilayer in range(1,len(model.layers)):
         if len(model.layers[ilayer].get_weights())>0:
@@ -143,7 +143,7 @@ def plotWeights(model,nBins=50):
     plt.clf()
     
 #plot outputs from each layers given an input
-def plotOutputs(model,x,layer_indices=[],nBins=10):
+def plot_outputs(model,x,layer_indices=[],nBins=10):
     plt.figure(figsize=(8,6))
     if len(layer_indices)>0:
         layers = layer_indices
@@ -163,7 +163,7 @@ def plotOutputs(model,x,layer_indices=[],nBins=10):
     plt.clf()
     return
 
-def plothistory(hist_dict,diff=False,title=None):
+def plot_history(hist_dict,diff=False,title=None):
     plt.figure(figsize=(8,6))
     linestyles  = ['-', '--', '-.', ':',',']
     for i,(label,data) in enumerate(hist_dict.items()):
@@ -183,8 +183,7 @@ def plothistory(hist_dict,diff=False,title=None):
     plt.yscale('log')
     return
 
-
-def plotEMD(flist):
+def plot_EMD(flist):
     perf_dict = loadPickles(flist)
     eval_settings={
         # compression algorithms, autoencoder and more traditional benchmarks

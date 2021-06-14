@@ -86,3 +86,14 @@ def cross_corr(x,y):
     stdsqr = np.multiply.outer(std, std)
     corr = np.divide(cov, stdsqr, out=np.zeros_like(cov), where=(stdsqr!=0))
     return corr[0,1]
+
+def zero_frac(y):
+    return np.all(y==0)
+
+def ssd(x,y):
+    if (np.sum(x)==0): return -1.
+    if (np.sum(y)==0): return -0.5
+    if (np.sum(x)==0 or np.sum(y)==0): return 1.
+    ssd=np.sum(((x-y)**2).flatten())
+    ssd = ssd/(np.sum(x**2)*np.sum(y**2))**0.5
+    return ssd

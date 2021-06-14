@@ -1,18 +1,12 @@
 import numpy as np
 import pandas as pd
-import optparse
-import numba
+import argparse
 import json
 import pickle
 import os
-import scipy.stats
-
+import numba
 import tensorflow as tf
 from tensorflow.keras import losses
-
-import matplotlib
-matplotlib.use('PDF')
-import matplotlib.pyplot as plt
 
 from qkeras import get_quantizer,QActivation
 from qkeras.utils import model_save_quantized_weights
@@ -21,18 +15,17 @@ from qDenseCNN import qDenseCNN
 from denseCNN import denseCNN
 from dense2DkernelCNN import dense2DkernelCNN
 
-import graphUtil
-import plotWafer
-
 from get_flops import get_flops_from_model
+
 from utils.logger import _logger
+from utils.plot import plot_loss, plot_hist, visualize_displays, plot_profile, overlay_plots
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
                     help="output directory")
 parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="inputFile",
                     help="input TSG files")
-parser.add_argument("--loss", type=str, default='telescopeMSE8x8', dest="loss",
+parser.add_argument("--loss", type=str, default=None, dest="loss",
                     help="force loss function to use")
 parser.add_argument("--quantize", action='store_true', default=False, dest="quantize",
                     help="quantize the model with qKeras. Default precision is 16,6 for all values.")
@@ -41,7 +34,7 @@ parser.add_argument("--epochs", type=int, default = 200, dest="epochs",
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
                     help="n of active transceiver e-links eTX")
 
-parser.add_argument("--skipPlot", action='store_true', default=True, dest="skipPlot",
+parser.add_argument("--skipPlot", action='store_true', default=False, dest="skipPlot",
                     help="skip the plotting step")
 parser.add_argument("--full", action='store_true', default = False,dest="full",
                     help="run all algorithms and metrics")
@@ -78,6 +71,9 @@ parser.add_argument("--maskEnergies", action='store_true', default = False,dest=
                     help="Mask energy fractions <= 0.05")
 parser.add_argument("--saveEnergy", action='store_true', default = False,dest="saveEnergy",
                     help="save SimEnergy from input data")
+parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
+                    help="input data has no header")
+
 parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models",
                     help="models to run, if empty string run all")
 
@@ -106,11 +102,11 @@ def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
     for i in range(len(norm_data)):
         if rescaleOutputToMax:
             norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].max() if norm_data[i].max() else 1.)
-	else:
+        else:
             if sumlog2:
                 sumlog2 = 2**(np.floor(np.log2(norm_data[i].sum())))
                 norm_data[i] =  norm_data[i] * maxvals[i] / (sumlog2 if sumlog2 else 1.)
-	    else:
+            else:
                 norm_data[i] =  norm_data[i] * maxvals[i] / (norm_data[i].sum() if norm_data[i].sum() else 1.)
     return norm_data
 
@@ -140,11 +136,14 @@ def load_data(args):
         for infile in os.listdir(args.inputFile):
             if os.path.isdir(args.inputFile+infile): continue
             infile = os.path.join(args.inputFile,infile)
-            df_arr.append(pd.read_csv(infile, nrows=args.nrowsPerFile))
-        data = pd.concat(df_arr)        
+            if args.noHeader:
+                df_arr.append(pd.read_csv(infile, dtype=np.float64, header=0, nrows = args.nrowsPerFile, usecols=[*range(0, 48)], names=CALQ_COLS))
+            else:
+                df_arr.append(pd.read_csv(infile, nrows=args.nrowsPerFile))
+        data = pd.concat(df_arr)
     else:
-        data = pd.read_csv(args.inputFile, nrows=args.nrowsPerFile))
-    data = mask_data(data)
+        data = pd.read_csv(args.inputFile, nrows=args.nrowsPerFile)
+    data = mask_data(data,args)
 
     if args.saveEnergy:
         try:
@@ -159,7 +158,8 @@ def load_data(args):
 
     data = data[CALQ_COLS].astype('float64')
     data_values = data.values
-    _logger.info('Input data shape ({shape[0]},{shape[1]})'.format(shape=data.shape))
+    _logger.info('Input data shape')
+    print(data.shape)
     data.describe()
 
     # duplicate data (e.g. for PU400?)
@@ -172,24 +172,24 @@ def load_data(args):
                 i+=2
             return np.array(doubled)
         doubled_data = double_data(data_values.copy())
-        _logger.info('Duplicated the data, the new shape is ({shape[0]},{shape[1]})'.format(shape=doubled_data.shape))
+        _logger.info('Duplicated the data, the new shape is:')
+        print(doubled_data.shape)
         data_values = doubled_data
 
     return data_values
 
 def build_model(args):
-    from networks import models_dict
+    # import network architecture and loss function
+    from networks import networks_by_name
 
     # select models to run
     if args.models != "":
         m_to_run = args.models.split(',')
-        try:
-            models = {m_name: models_dict[m_name] for m_name in m_to_run}
-        except:
-            _logger.warning('Not all models match the input dictionary')
+        models = [n for n in networks_by_name if n['name'] in m_to_run]
     else:
-        models = models_dict
-    
+        models = networks_by_name
+        
+    nBits_encod = dict()
     if(args.nElinks==2):
         nBits_encod  = {'total':  3, 'integer': 1,'keep_negative':0}
     elif(args.nElinks==3):
@@ -200,6 +200,7 @@ def build_model(args):
         nBits_encod  = {'total':  9, 'integer': 1,'keep_negative':0} # 0 to 2 range, 8 bit decimal 
     else:
         _logger.warning('Must specify encoding bits for nElink %i'%args.nElinks)
+        
     for m in models:
         if not 'nBits_encod' in m['params'].keys():
             m['params'].update({'nBits_encod':nBits_encod})
@@ -250,8 +251,10 @@ def split(shaped_data, validation_frac=0.2,randomize=False):
         val_index = np.arange(N)
         train_index = np.arange(len(shaped_data))[N:]
 
-    _logger.info('Training shape ({shape[0]},{shape[1]})'.format(shape=train_input.shape))
-    _logger.info('Validation shape ({shape[0]},{shape[1]})'.format(shape=val_input.shape))
+    _logger.info('Training shape')
+    print(train_input.shape)
+    _logger.info('Validation shape')
+    print(val_input.shape)
     return val_input,train_input,val_index,train_index
 
 def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=100, train_weights=None):
@@ -260,36 +263,10 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
     es = callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=3)
 
     if train_weights != None:
-        history = autoencoder.fit(train_input,train_target,
-                                  sample_weight=train_weights,                                                                                                                                             
-                                  epochs=n_epochs,
-                                  batch_size=500,
-                                  shuffle=True,
-                                  validation_data=(val_input,val_input),
-                                  callbacks=[es]
-        )
+        history = autoencoder.fit(train_input,train_target,sample_weight=train_weights,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
     else:
-	history = autoencoder.fit(train_input,train_target,
-                                  epochs=n_epochs,
-                                  batch_size=500,
-                                  shuffle=True,
-                                  validation_data=(val_input,val_input),
-                                  callbacks=[es]
-	)
+        history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
 
-    def plot_loss(history)
-        plt.figure(figsize=(8,6))
-        plt.yscale('log')
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.title('Model loss %s'%name)
-        plt.ylabel('Loss')
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Test'], loc='upper right')
-        plt.savefig("history_%s.pdf"%name)
-        plt.close()
-        plt.clf()
-    
     plot_loss(history)
 
     with open('./history_%s.pkl'%name, 'wb') as file_pi:
@@ -300,7 +277,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
         if QActivation == type(layer): isQK = True
 
     def save_models(autoencoder, name, isQK=False):
-        import graphUtil
+        from utils import graph
         
         json_string = autoencoder.to_json()
         encoder = autoencoder.get_layer("encoder")
@@ -315,34 +292,208 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
             encoder_qWeight = model_save_quantized_weights(encoder)
             with open('encoder_'+name+'.pkl','wb') as f:
                 pickle.dump(encoder_qWeight,f)
-            encoder = graphUtil.setQuantizedWeights(encoder,'encoder_'+name+'.pkl')
-        graphUtil.outputFrozenGraph(encoder,'encoder_'+name+'.pb')
-        graphUtil.outputFrozenGraph(encoder,'encoder_'+name+'.pb.ascii','./',True)
-        graphUtil.outputFrozenGraph(decoder,'decoder_'+name+'.pb')
-        graphUtil.outputFrozenGraph(decoder,'decoder_'+name+'.pb.ascii','./',True)
-        graphUtil.plotWeights(autoencoder)
-        graphUtil.plotWeights(encoder)
-        graphUtil.plotWeights(decoder)
+            encoder = graph.set_quantized_weights(encoder,'encoder_'+name+'.pkl')
+        graph.write_frozen_graph(encoder,'encoder_'+name+'.pb')
+        graph.write_frozen_graph(encoder,'encoder_'+name+'.pb.ascii','./',True)
+        graph.write_frozen_graph(decoder,'decoder_'+name+'.pb')
+        graph.write_frozen_graph(decoder,'decoder_'+name+'.pb.ascii','./',True)
+        
+        graph.plot_weights(autoencoder)
+        graph.plot_weights(encoder)
+        graph.plot_weights(decoder)
     
     save_models(autoencoder,name,isQK)
 
     return history
 
+def evaluate_model(model,charges,aux_arrs,eval_dict,args):
+    # input arrays
+    input_Q         = charges['input_Q']
+    input_Q_abs     = charges['input_Q_abs']
+    input_calQ      = charges['input_calQ']
+    output_calQ     = charges['output_calQ']
+    output_calQ_fr  = charges['output_calQ_fr']
+    cnn_deQ         = charges['cnn_deQ']
+    cnn_enQ         = charges['cnn_enQ']
+    val_sum         = charges['val_sum']
+    val_max         = charges['val_max']
+
+    ae_out      = output_calQ
+    ae_out_frac = normalize(output_calQ.copy())
+
+    occupancy_1MT = aux_arrs['occupancy_1MT']
+
+    # visualize 2D activations
+    if not model['isQK']:
+        conv2d  = None
+    else:
+        conv2d = kr.models.Model(
+            inputs =model['m_autoCNNen'].inputs,
+            outputs=model['m_autoCNNen'].get_layer("conv2d_0_m").output
+        )
+
+    occ_nbins = eval_dict['occ_nbins']
+    occ_range = eval_dict['occ_range']
+    occ_bins = eval_dict['occ_bins']
+    
+    chg_nbins = eval_dict['chg_nbins']
+    chg_range = eval_dict['chg_range']
+    chglog_nbins = eval_dict['chglog_nbins']
+    chglog_range = eval_dict['chglog_range']
+    chg_bins = eval_dict['chg_bins']
+    
+    occTitle = eval_dict['occTitle']
+    logMaxTitle = eval_dict['logMaxTitle']
+    logTotTitle = eval_dict['logTotTitle']
+    
+    longMetric = {'cross_corr':'cross correlation',
+                  'SSD':'sum of squared differences',
+                  'EMD':'earth movers distance',
+                  'dMean':'difference in energy-weighted mean',
+                  'dRMS':'difference in energy-weighted RMS',
+                  'zero_frac':'zero fraction',}
+
+    _logger.info("Running non-AE algorithms")
+    if args.AEonly:
+        alg_outs = {'ae' : ae_out}
+    else:
+        thr_lo_Q = np.where(input_Q_abs>1.35,input_Q_abs,0) # 1.35 transverse MIPs
+        stc_Q = make_supercells(input_Q_abs, stc16=True)
+        nBC={2:4, 3:6, 4:9, 5:14} #4, 6, 9, 14 (for 2,3,4,5 e-links)
+        bc_Q = best_choice(input_Q_abs, nBC[args.nElinks])
+        alg_outs = {
+            'ae' : ae_out,
+            'stc': stc_Q,
+            #'bc': bc_Q,
+            #'thr_lo': thr_lo_Q, 
+        }
+
+    model_name = model['name']
+    plots={}
+    summary_by_model = {
+        'name':model_name,
+        'en_pams' : model['m_autoCNNen'].count_params(),
+        'en_flops' : get_flops_from_model(model['m_autoCNNen']),
+        'tot_pams': model['m_autoCNN'].count_params(),
+    }
+
+    if (not args.skipPlot): plot_hist(np.log10(val_sum.flatten()),
+                                      "sumQ_validation",xtitle=logTotTitle,ytitle="Entries",
+                                      stats=True,logy=True,nbins=chglog_nbins,lims = chglog_range)
+    if (not args.skipPlot): plot_hist([np.log10(val_max.flatten())],
+                                      "maxQ_validation",xtitle=logMaxTitle,ytitle="Entries",
+                                      stats=True,logy=True,nbins=chglog_nbins,lims = chglog_range)
+
+    if (not args.skipPlot):
+        from utils import graph
+        for ilayer in range(0,len(model['m_autoCNNen'].layers)):
+            label = model['m_autoCNNen'].layers[ilayer].name
+            output,bins = np.histogram(graph.get_layer_output(model['m_autoCNNen'],ilayer,input_Q).flatten(),50)
+            plots['hist_output_%s'%ilayer] = output,bins,label
+
+    # compute metric for each algorithm
+    for algname, alg_out in alg_outs.items():
+        # event displays
+        if(not args.skipPlot):
+            Nevents = 8
+            index = np.random.choice(input_Q.shape[0], Nevents, replace=False)
+            visualize_displays(index, input_Q, input_calQ, alg_out, (cnn_enQ if algname=='ae' else np.array([])),(conv2d if algname=='ae' else None), name=algname)
+
+        for mname, metric in eval_dict['metrics'].items():
+            name = mname+"_"+algname
+            vals = np.array([metric(input_calQ[i],alg_out[i]) for i in range(0,len(input_Q_abs))])
+
+            model[name] = np.round(np.mean(vals), 3)
+            model[name+'_err'] = np.round(np.std(vals), 3)
+            summary_by_model[name] = model[name]
+            summary_by_model[name+'_err'] = model[name+'_err']
+            
+            if(not args.skipPlot) and (not('zero_frac' in mname)):
+                plot_hist(vals,"hist_"+name,xtitle=longMetric[mname])
+                plot_hist(vals[vals>-1e-9],"hist_nonzero_"+name,xtitle=longMetric[mname])
+                plot_hist(np.where(vals>-1e-9,1,0),"hist_iszero_"+name,xtitle=longMetric[mname])
+
+                # 1d profiles
+                plots["occ_"+name] = plot_profile(occupancy_1MT, vals,"profile_occ_"+name,
+                                                  nbins=occ_nbins, lims=occ_range,
+                                                  xtitle=occTitle,ytitle=longMetric[mname])
+                plots["chg_"+name] = plot_profile(np.log10(val_max), vals,"profile_maxQ_"+name,ytitle=longMetric[mname],
+                                                  nbins=chglog_nbins, lims=chglog_range,
+                                                  xtitle=logMaxTitle if args.rescaleInputToMax else logTotTitle)
+
+                # binned profiles in occupancy
+                for iocc, occ_lo in enumerate(occ_bins):
+                    occ_hi = 9e99 if iocc+1==len(occ_bins) else occ_bins[iocc+1]
+                    occ_hi_s = 'MAX' if iocc+1==len(occ_bins) else str(occ_hi)
+                    indices = (occupancy_1MT >= occ_lo) & (occupancy_1MT < occ_hi)
+                    pname = "chg_{}occ{}_{}".format(occ_lo,occ_hi_s,name)
+                    plots[pname] = plot_profile(np.log10(val_max[indices]), vals[indices],"profile_"+pname,
+                                                xtitle=logMaxTitle,
+                                                nbins=chglog_nbins, lims=chglog_range,
+                                                ytitle=longMetric[mname],
+                                                text="{} <= occupancy < {}".format(occ_lo,occ_hi_s,name))
+
+                # binned profiles in charge
+                for ichg, chg_lo in enumerate(chg_bins):
+                    chg_hi = 9e99 if ichg+1==len(chg_bins) else chg_bins[ichg+1]
+                    chg_hi_s = 'MAX' if ichg+1==len(chg_bins) else str(chg_hi)
+                    indices = (val_max >= chg_lo) & (val_max < chg_hi)
+                    pname = "occ_{}chg{}_{}".format(chg_lo,chg_hi_s,name)
+                    plots[pname] = plot_profile(occupancy_1MT[indices], vals[indices],"profile_"+pname,
+                                                xtitle=occTitle,
+                                                ytitle=longMetric[mname],
+                                                nbins=occ_nbins, lims=occ_range,
+                                                text="{} <= Max Q < {}".format(chg_lo,chg_hi_s,name))
+                    
+    # overlay different metrics
+    for mname in eval_dict['metrics']:
+        chgs=[]
+        occs=[]
+        if(not args.skipPlot):
+            for algname in alg_outs:
+                name = mname+"_"+algname
+                chgs += [(algname, plots["chg_"+mname+"_"+algname])]
+                occs += [(algname, plots["occ_"+mname+"_"+algname])]
+            xt = logMaxTitle if args.rescaleInputToMax else logTotTitle
+            overlay_plots(chgs,"overlay_chg_"+mname,xtitle=xt,ytitle=mname)
+            overlay_plots(occs,"overlay_occ_"+mname,xtitle=occTitle,ytitle=mname)
+
+            # binned comparison
+            for iocc, occ_lo in enumerate(occ_bins):
+                occ_hi = 9e99 if iocc+1==len(occ_bins) else occ_bins[iocc+1]
+                occ_hi_s = 'MAX' if iocc+1==len(occ_bins) else str(occ_hi)
+                pname = "chg_{}occ{}_{}".format(occ_lo,occ_hi_s,name)
+                pname = "chg_{}occ{}".format(occ_lo,occ_hi_s)
+                chgs=[(algname, plots[pname+"_"+mname+"_"+algname]) for algname in alg_outs]
+                overlay_plots(chgs,"overlay_chg_{}_{}occ{}".format(mname,occ_lo,occ_hi_s),
+                              xtitle=logMaxTitle,ytitle=mname,
+                              text="{} <= occupancy < {}".format(occ_lo,occ_hi_s,name))
+
+            for ichg, chg_lo in enumerate(chg_bins):
+                chg_hi = 9e99 if ichg+1==len(chg_bins) else chg_bins[ichg+1]
+                chg_hi_s = 'MAX' if ichg+1==len(chg_bins) else str(chg_hi)
+                pname = "occ_{}chg{}".format(chg_lo,chg_hi_s)
+                occs=[(algname, plots[pname+"_"+mname+"_"+algname]) for algname in alg_outs]
+                overlay_plots(occs,"overlay_occ_{}_{}chg{}".format(mname,chg_lo,chg_hi_s),
+                             xtitle=occTitle, ytitle=mname,
+                             text="{} <= Max Q < {}".format(chg_lo,chg_hi_s,name))
+
+    return plots, summary_by_model
 
 def compare_models(models,perf_dict,eval_dict,args):
     algnames = eval_dict['algnames']
-    metrics  = eval_dict['metrics']
-    occ_nbins    =eval_dict[  "occ_nbins"  ]
-    occ_range    =eval_dict[  "occ_range"   ]
-    occ_bins     =eval_dict[  "occ_bins"    ]
-    chg_nbins    =eval_dict[  "chg_nbins"   ]
-    chg_range    =eval_dict[  "chg_range"   ]
-    chglog_nbins =eval_dict[  "chglog_nbins"]
-    chglog_range =eval_dict[  "chglog_range"]
-    chg_bins     =eval_dict[  "chg_bins"    ]
-    occTitle    =eval_dict["occTitle"   ]
-    logMaxTitle =eval_dict["logMaxTitle"]
-    logTotTitle =eval_dict["logTotTitle"]
+    metrics = eval_dict['metrics']
+    occ_nbins = eval_dict['occ_nbins']
+    occ_range = eval_dict['occ_range']
+    occ_bins = eval_dict['occ_bins']
+    chg_nbins = eval_dict['chg_nbins']
+    chg_range = eval_dict['chg_range']
+    chglog_nbins = eval_dict['chglog_nbins']
+    chglog_range = eval_dict['chglog_range']
+    chg_bins = eval_dict['chg_bins']
+    occTitle = eval_dict['occTitle']
+    logMaxTitle = eval_dict['logMaxTitle']
+    logTotTitle = eval_dict['logTotTitle']
 
     summary_entries=['name','en_pams','tot_pams','en_flops']
     for algname in algnames:
@@ -360,20 +511,22 @@ def compare_models(models,perf_dict,eval_dict,args):
             chgs=[]
             occs=[]
             for model_name in perf_dict:
-		plots = perf_dict[model_name]
+                plots = perf_dict[model_name]
                 short_model = model_name
                 chgs += [(short_model, plots["chg_"+mname+"_ae"])]
                 occs += [(short_model, plots["occ_"+mname+"_ae"])]
             xt = logMaxTitle if args.rescaleInputToMax else logTotTitle
-            OverlayPlots(chgs,"ae_comp_chg_"+mname,xtitle=xt,ytitle=mname)
-            OverlayPlots(occs,"ae_comp_occ_"+mname,xtitle=occTitle,ytitle=mname)
+            overlay_plots(chgs,"ae_comp_chg_"+mname,xtitle=xt,ytitle=mname)
+            overlay_plots(occs,"ae_comp_occ_"+mname,xtitle=occTitle,ytitle=mname)
 
     for model in models:
-        print('Summary_dict',model['summary_dict'])
+        _logger.info('Summary_dict')
+        print(model['summary_dict'])
         summary = summary.append(model['summary_dict'], ignore_index=True)
         
     print(summary)
-    
+    return
+
 def main(args):
     _logger.info(args)
 
@@ -393,7 +546,7 @@ def main(args):
     # rescaleInputToMax: normalizes charges to maximum charge in module
     # sumlog2 (default): normalizes charges to 2**floor(log2(sum of charge in module)) where floor is the largest scalar integer: i.e. normalizes to MSB of the sum of charges (MSB here is the most significant bit)
     # rescaleSum: normalizes charges to sum of charge in module
-    normdata,maxdata,sumdata = normalize(data_values.copy(),rescaleInputToMax=args.rescaleInputToMax)
+    normdata,maxdata,sumdata = normalize(data_values.copy(),rescaleInputToMax=args.rescaleInputToMax,sumlog2=False)
     maxdata = maxdata / 35. # normalize to units of transverse MIPs
     sumdata = sumdata / 35. # normalize to units of transverse MIPs
 
@@ -420,9 +573,10 @@ def main(args):
 
     # build default AE models
     models = build_model(args)
-
-    # evaluation dictionary
-    from metrics import emd,d_weighted_mean,d_abs_weighted_rms,zero_frac,ssd
+    
+    # evaluate performance
+    from utils.metrics import emd,d_weighted_mean,d_abs_weighted_rms,zero_frac,ssd
+    
     eval_dict={
         # compare to other algorithms
         'algnames'    :['ae','stc','thr_lo','thr_hi','bc'],
@@ -453,15 +607,15 @@ def main(args):
 
     if(not args.skipPlot):
         # plot occupancy
-        plotHist(occupancy_all.flatten(),"occ_all",xtitle="occupancy (all cells)",ytitle="evts",
-                 stats=False,logy=True,nbins=50,lims=[0,50])
-        plotHist(occupancy_all_1MT.flatten(),"occ_1MT",xtitle=r"occupancy (1 MIP$_{\mathrm{T}}$ cells)",ytitle="evts",
-                 stats=False,logy=True,nbins=50,lims=[0,50])
-        plotHist(np.log10(maxdata.flatten()),"maxQ_all",xtitle=eval_dict['logMaxTitle'],ytitle="evts",
-                 stats=False,logy=True,nbins=50,lims=[0,2.5])
-        plotHist(np.log10(sumdata.flatten()),"sumQ_all",xtitle=eval_dict['logTotTitle'],ytitle="evts",
-                 stats=False,logy=True,nbins=50,lims=[0,2.5])
-
+        plot_hist(occupancy_all.flatten(),"occ_all",xtitle="occupancy (all cells)",ytitle="evts",
+                  stats=False,logy=True,nbins=50,lims=[0,50])
+        plot_hist(occupancy_all_1MT.flatten(),"occ_1MT",xtitle=r"occupancy (1 MIP$_{\mathrm{T}}$ cells)",ytitle="evts",
+                  stats=False,logy=True,nbins=50,lims=[0,50])
+        plot_hist(np.log10(maxdata.flatten()),"maxQ_all",xtitle=eval_dict['logMaxTitle'],ytitle="evts",
+                  stats=False,logy=True,nbins=50,lims=[0,2.5])
+        plot_hist(np.log10(sumdata.flatten()),"sumQ_all",xtitle=eval_dict['logTotTitle'],ytitle="evts",
+                  stats=False,logy=True,nbins=50,lims=[0,2.5])
+        
     # performance dictionary
     perf_dict={}
     
@@ -472,14 +626,14 @@ def main(args):
         os.chdir(model_name)
         
         if model['isQK']:
-            m = qDenseCNN(weights_f=model['ws'])
             _logger.info("Model is a qDenseCNN")
+            m = qDenseCNN(weights_f=model['ws'])
         elif model['isDense2D']:
+            _logger.info("Model is a dense2DkernelCNN")
             m = dense2DkernelCNN(weights_f=model['ws'])
-             _logger.info("Model is a dense2DkernelCNN")
         else:
+            _logger.info("Model is a denseCNN")
             m = denseCNN(weights_f=model['ws'])
-             _logger.info("Model is a denseCNN")
         m.setpams(model['params'])
         m.init()
 
@@ -487,6 +641,7 @@ def main(args):
 
         # split in training/validation datasets
         if args.evalOnly:
+            _logger.info("Eval only")
             val_input = shaped_data
             val_ind = np.array(range(len(shaped_data)))
             train_input = val_input[:0] #empty with correct shape                                                                                                                                           
@@ -537,13 +692,15 @@ def main(args):
                 pass
 
         # evaluate model
-        _logger.info('Evaluate AutoEncoder, model %s'%m['name'])
+        _logger.info('Evaluate AutoEncoder, model %s'%model_name)
         input_Q, cnn_deQ, cnn_enQ = m.predict(val_input)
         
         input_calQ  = m.mapToCalQ(input_Q)   # shape = (N,48) in CALQ order
         output_calQ_fr = m.mapToCalQ(cnn_deQ)   # shape = (N,48) in CALQ order
-        _logger.info('inputQ shape ({shape[0]},{shape[1]})'.format(shape=input_Q.shape))
-        _logger.info('inputcalQ shape ({shape[0]},{shape[1]})'.format(shape=input_calQ.shape))
+        _logger.info('inputQ shape')
+        print(input_Q.shape)
+        _logger.info('inputcalQ shape')
+        print(input_calQ.shape)
 
         _logger.info('Restore normalization')
         input_Q_abs = np.array([input_Q[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit                              
@@ -569,17 +726,19 @@ def main(args):
         charges = {
             'input_Q'    : input_Q,               
             'input_Q_abs': input_Q_abs,           
-            'input_calQ' : input_calQ,            # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)                                                                                                        
-            'output_calQ': output_calQ,           # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)                                                                                                        
-            'output_calQ_fr': output_calQ_fr,     # shape = (N,48) (in Q fr)   (in CALQ 1-48 order)                                                                                                         
+            'input_calQ' : input_calQ,            # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
+            'output_calQ': output_calQ,           # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
+            'output_calQ_fr': output_calQ_fr,     # shape = (N,48) (in Q fr)   (in CALQ 1-48 order)
             'cnn_deQ'    : cnn_deQ,
             'cnn_enQ'    : cnn_enQ,
             'val_sum'    : val_sum,
             'val_max'    : val_max,
         }
+        
         aux_arrs = {
            'occupancy_1MT':occupancy_1MT
         }
+        
         perf_dict[model['label']] , model['summary_dict'] = evaluate_model(model,charges,aux_arrs,eval_dict,args)
 
         os.chdir('../')
