@@ -34,7 +34,7 @@ def plot_hist(vals,name,odir='.',xtitle="",ytitle="",nbins=40,lims=None,
     plt.close()
     return
 
-def plot_loss(history):
+def plot_loss(history,name):
     plt.figure(figsize=(8,6))
     plt.yscale('log')
     plt.plot(history.history['loss'])

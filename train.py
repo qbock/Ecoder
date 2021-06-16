@@ -267,7 +267,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
     else:
         history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
 
-    plot_loss(history)
+    plot_loss(history,name)
 
     with open('./history_%s.pkl'%name, 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
