@@ -71,40 +71,40 @@ for i in range(0,8):
         
 def emd_loss1(y_true, y_pred):
         
-    emd_model=emd_models[1]    
+    emd_model=emd_models[0]    
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss2(y_true, y_pred):
     
-    emd_model=emd_models[2]    
+    emd_model=emd_models[1]    
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss3(y_true, y_pred):
     
-    emd_model=emd_models[3]
+    emd_model=emd_models[2]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss4(y_true, y_pred):
     
-    emd_model=emd_models[4]
+    emd_model=emd_models[3]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss5(y_true, y_pred):
     
-    emd_model=emd_models[5]
+    emd_model=emd_models[4]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss6(y_true, y_pred):
     
-   emd_model=emd_models[6]
+    emd_model=emd_models[5]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss7(y_true, y_pred):
     
-   emd_model=emd_models[7]
+    emd_model=emd_models[6]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss8(y_true, y_pred):
     
-    emd_model=emd_models[8]
+    emd_model=emd_models[7]
     return emd_model([y_true_443, y_pred_443])
