@@ -43,7 +43,7 @@ def map_881_to_443(x):
     return y
 
 emd_models=[]
-for i in range(0,8):
+for i in range(1,9):
         model_directory=os.path.join(current_directory,str(i)+'.h5')
         model = tf.keras.models.load_model(model_directory)
         model.trainable = False
