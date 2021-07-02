@@ -42,6 +42,13 @@ def map_881_to_443(x):
     y = tf.reshape(y, (-1, 4, 4, 3))
     return y
 
+emd_models=[]
+for i in range(0,8):
+        model_directory=os.path.join(current_directory,str(i)+'.h5')
+        model = tf.keras.models.load_model(model_directory)
+        model.trainable = False
+        models.append(model)
+
     
     """
     Input comes in in 8x8 looking like this:
@@ -58,98 +65,46 @@ def map_881_to_443(x):
     
     """
         
-def emd_loss1(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'1.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
     y_pred_443 = map_881_to_443(y_pred)
     y_true_443 = map_881_to_443(y_true)
-    
+        
+def emd_loss1(y_true, y_pred):
+        
+    emd_model=emd_models[1]    
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss2(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'2.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+    emd_model=emd_models[2]    
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss3(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'3.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+    emd_model=emd_models[3]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss4(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'4.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+    emd_model=emd_models[4]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss5(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'5.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+    emd_model=emd_models[5]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss6(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'6.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+   emd_model=emd_models[6]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss7(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'7.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+   emd_model=emd_models[7]
     return emd_model([y_true_443, y_pred_443])
 
 def emd_loss8(y_true, y_pred):
     
-    model_directory=os.path.join(current_directory,r'8.h5')
-
-    emd_model = tf.keras.models.load_model(model_directory)
-    emd_model.trainable = False
-
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
+    emd_model=emd_models[8]
     return emd_model([y_true_443, y_pred_443])
