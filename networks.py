@@ -3,6 +3,8 @@ import tensorflow.keras.optimizers as opt
 
 from telescope import telescopeMSE443,telescopeMSE663,telescopeMSE8x8
 
+from emdloss import *
+
 edim = 16
 
 """
@@ -178,6 +180,102 @@ networks_by_name = [
          'CNN_strides':[(2,2)],
         },
     },
+    
+    {'name':'8x8_c8_S2_emd1',
+     'label':'8x8_c[8]_S2(emd1)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss1,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd2',
+     'label':'8x8_c[8]_S2(emd2)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss2,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd3',
+     'label':'8x8_c[8]_S2(emd3)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss3,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd4',
+     'label':'8x8_c[8]_S2(emd4)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss4,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd5',
+     'label':'8x8_c[8]_S2(emd5)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss5,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd6',
+     'label':'8x8_c[8]_S2(emd6)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss6,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd7',
+     'label':'8x8_c[8]_S2(emd7)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss7,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    },
+    
+    {'name':'8x8_c8_S2_emd',
+     'label':'8x8_c[8]_S2(emd)',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':emd_loss8,
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+        },
+    }
 ]
 
 defaults = {'channels_first': False,
