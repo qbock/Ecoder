@@ -40,10 +40,12 @@ Electron samples: (neLinks 2-5 with sim-Energy information) `/eos/uscms/store/us
 You can train CNN(s) on the dataset to obtain a differentiable approximation of the EMD, which saves 8 different loss functions as emd_loss1 ...
 
 ```
-python3 train_emdloss.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/ --epoch 50
+python3 train_emdloss.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/ --epoch 50 --best 10
 ```
+Vary the  number of best models to be saved as such:
+- `--best`: The default number of EMD_CNN models saved is 8.
 
-## Training
+## Training ECON-T autoencoder
 
 The default model uses the telescope loss, we can compare the performance of the autoencoder with the emd_loss's as such:
 
