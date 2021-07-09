@@ -18,7 +18,6 @@ sys.path.insert(0, "../")
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from plotWafer import plotWafer
 
 from utils.metrics import emd
 
