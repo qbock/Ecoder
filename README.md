@@ -14,7 +14,7 @@ conda activate ecoder-env
 
 Clone the repository (or your own fork):
 ```
-git clone git@github.com:cmantill/Ecoder.git
+https://github.com/rohanshenoy/Ecoder.git
 cd Ecoder/
 ``` 
 
