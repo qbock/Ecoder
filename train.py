@@ -50,15 +50,15 @@ parser.add_argument("--double", action='store_true', default = False,dest="doubl
                     help="test PU400 by combining PU200 events")
 parser.add_argument("--overrideInput", action='store_true', default = False,dest="overrideInput",
                     help="disable safety check on inputs")
-parser.add_argument("--nCSV", type=int, default = 50, dest="nCSV",
+parser.add_argument("--nCSV", type=int, default = 1, dest="nCSV",
                     help="n of validation events to write to csv")
 parser.add_argument("--maxVal", type=int, default = -1, dest="maxVal",
                     help="clip outputs to maxVal")
 parser.add_argument("--AEonly", type=int, default=1, dest="AEonly",
                     help="run only AE algo")
-parser.add_argument("--rescaleInputToMax", type=int, default=0, dest="rescaleInputToMax",
+parser.add_argument("--rescaleInputToMax", action='store_true', default=False, dest="rescaleInputToMax",
                     help="rescale the input images so the maximum deposit is 1. Else normalize")
-parser.add_argument("--rescaleOutputToMax", type=int, default=0, dest="rescaleOutputToMax",
+parser.add_argument("--rescaleOutputToMax", action='store_true', default=False, dest="rescaleOutputToMax",
                     help="rescale the output images to match the initial sum of charge")
 parser.add_argument("--nrowsPerFile", type=int, default=500000, dest="nrowsPerFile",
                     help="load nrowsPerFile in a directory")
@@ -546,7 +546,7 @@ def main(args):
     # rescaleInputToMax: normalizes charges to maximum charge in module
     # sumlog2 (default): normalizes charges to 2**floor(log2(sum of charge in module)) where floor is the largest scalar integer: i.e. normalizes to MSB of the sum of charges (MSB here is the most significant bit)
     # rescaleSum: normalizes charges to sum of charge in module
-    normdata,maxdata,sumdata = normalize(data_values.copy(),rescaleInputToMax=args.rescaleInputToMax,sumlog2=False)
+    normdata,maxdata,sumdata = normalize(data_values.copy(),rescaleInputToMax=args.rescaleInputToMax,sumlog2=True)
     maxdata = maxdata / 35. # normalize to units of transverse MIPs
     sumdata = sumdata / 35. # normalize to units of transverse MIPs
 
@@ -707,7 +707,7 @@ def main(args):
         input_calQ  = np.array([input_calQ[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order                                
         output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if args.rescaleOutputToMax else val_sum, rescaleOutputToMax=args.rescaleOutputToMax)
 
-        isRTL = False
+        isRTL = True
         if isRTL:
             _logger.info('Save CVS for RTL verification')
             N_csv= (args.nCSV if args.nCSV>=0 else input_Q.shape[0]) # about 80k                                                                                                                          
