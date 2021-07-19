@@ -43,7 +43,7 @@ python3 train_emdloss.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/
 ```
 Vary the  number of best models to be saved as such:
 - `--bestEMD`: The default number of EMD_CNN models saved is 8.
-- - `--nrowsPerFile`: Load only this number of rows per file. Train the autoencoder too on the same rows.
+- `--nrowsPerFile`: Load only this number of rows per file. Train the autoencoder too on the same rows.
 
 ## Training ECON-T autoencoder
 
