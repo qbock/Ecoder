@@ -35,95 +35,36 @@ arrange443 = np.array([0,16, 32,
                        14,30, 46,
                        15,31, 47])
 
-def map_881_to_443(x):
-    y = tf.reshape(x, (-1, 64))
-    y = tf.gather(y, remap_8x8, axis=1)
-    y = tf.gather(y, arrange443, axis=1)
-    y = tf.reshape(y, (-1, 4, 4, 3))
-    return y
-
-emd_models=[]
-for i in range(1,2):
-        model_directory=os.path.join(current_directory,str(i)+'.h5')
-        model = tf.keras.models.load_model(model_directory)
-        model.trainable = False
-        emd_models.append(model)
-        
-"""
-Input comes in in 8x8 looking like this:
-arrange8x8 = np.array([
-    28,29,30,31,0,4,8,12,
-    24,25,26,27,1,5,9,13,
-    20,21,22,23,2,6,10,14,
-    16,17,18,19,3,7,11,15,
-    47,43,39,35,35,34,33,32,
-    46,42,38,34,39,38,37,36,
-    45,41,37,33,43,42,41,40,
-    44,40,36,32,47,46,45,44])
-Remapping using array from telescope.py
+def get_emd_loss(model_number):
+    """
+     model_path: path to EMD model h5 file, saved at /best_emd/1.h5
+     Input comes in in 8x8 looking like this:
+     arrange8x8 = np.array([
+         28,29,30,31,0,4,8,12,
+         24,25,26,27,1,5,9,13,
+         20,21,22,23,2,6,10,14,
+         16,17,18,19,3,7,11,15,
+         47,43,39,35,35,34,33,32,
+         46,42,38,34,39,38,37,36,
+         45,41,37,33,43,42,41,40,
+         44,40,36,32,47,46,45,44])
+     Remapping using array from telescope.py  
+  """
     
-"""
-        
-def emd_loss1(y_true, y_pred):
-    
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-        
-    emd_model=emd_models[0]    
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss2(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[1]    
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss3(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[2]
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss4(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[3]
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss5(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[4]
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss6(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[5]
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss7(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[6]
-    return emd_model([y_true_443, y_pred_443])
-
-def emd_loss8(y_true, y_pred):
-        
-    y_pred_443 = map_881_to_443(y_pred)
-    y_true_443 = map_881_to_443(y_true)
-    
-    emd_model=emd_models[7]
-    return emd_model([y_true_443, y_pred_443])
+    model_path=os.getcwd()+'/best_emd/'+str(model_number)+'.h5'
+    emd_model = tf.keras.models.load_model(model_path)
+    emd_model.trainable = False
+                 
+    def map_881_to_443(x):
+        y = tf.reshape(x, (-1, 64))
+        y = tf.gather(y, remap_8x8, axis=1)
+        y = tf.gather(y, arrange443, axis=1)
+        y = tf.reshape(y, (-1, 4, 4, 3))
+        return y
+  
+    def emd_loss(y_true, y_pred):
+        y_pred_443 = map_881_to_443(y_pred)
+        y_true_443 = map_881_to_443(y_true)
+        return emd_model([y_true_443, y_pred_443])
+  
+    return emd_loss
