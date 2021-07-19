@@ -179,7 +179,7 @@ def main(args):
         #Each model per set of hyperparamters is trained thrice to avoid bad initialitazion discarding a good model. (We vary num_epochs by 1 to differentiate between these 3 trainings)
         
         for i in [0,1,2]:
-            obj=emd_loss_cnn.EMD_CNN(True)
+            obj=emd_loss_cnn.EMD_CNN()
             mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             mean_data.append(mean)
             std_data.append(sd)
