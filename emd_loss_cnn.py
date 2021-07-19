@@ -68,11 +68,10 @@ class EMD_CNN:
         # split train and validation so there is no overlap in samples whatsoever
         train_indices = range(0, int(0.6*len(calQ)))
         val_indices = range(int(0.6*len(calQ)), len(calQ))
-        print("check1")
+        
         idx1_train = np.array([i for i,j in itertools.product(train_indices,train_indices)])
         idx2_train = np.array([j for i,j in itertools.product(train_indices,train_indices)])
-        print("check2")
-        
+              
         X = calQ_443
                  
         X1_train = X[idx1_train]
