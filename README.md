@@ -37,20 +37,20 @@ Electron samples: (neLinks 2-5 with sim-Energy information) `/eos/uscms/store/us
 
 ## Training emd_loss approximation using CNNs
 
-You can train CNN(s) on the dataset to obtain a differentiable approximation of the EMD, which saves 8 different loss functions as emd_loss1 ...
-
+You can train CNN(s) on the dataset to obtain a differentiable approximation of the EMD
 ```
-python3 train_emdloss.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/ --epoch 50 --best 10
+python3 train_emdloss.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/ --epoch 48 --best 10 --noHeader --nrowsPerFile 500
 ```
 Vary the  number of best models to be saved as such:
-- `--best`: The default number of EMD_CNN models saved is 8.
+- `--bestEMD`: The default number of EMD_CNN models saved is 8.
+- - `--nrowsPerFile`: Load only this number of rows per file. Train the autoencoder too on the same rows.
 
 ## Training ECON-T autoencoder
 
 The default model uses the telescope loss, we can compare the performance of the autoencoder with the emd_loss's as such:
 
 ```
-python3 train.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/  -o ./test/ --epoch 1 --AEonly 1 --nELinks 5 --noHeader --models 8x8_c8_S2_tele,8x8_c8_S2_emd6
+python3 train.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/  -o ./test/ --epoch 1 --AEonly 1 --nELinks 5 --nrowsPerFile 500 --noHeader --models 8x8_c8_S2_tele,8x8_c8_S2_emd6
 ```
 
 here:
