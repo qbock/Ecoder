@@ -54,8 +54,6 @@ class EMD_CNN:
                                14,30, 46,
                                15,31, 47])
         
-        print(calQ_data)
-        print("here")
         calQ     = calQ_data
         sumQ     = calQ.sum(axis=1)
         calQ     = calQ[sumQ>0]
