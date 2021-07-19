@@ -1,7 +1,7 @@
 """
 Created on Thu Apr 15 08:02:19 2021
 
-@author: Prof Javier Duarte, Rohan Shenoy, UCSD
+@author: Javier Duarte, Rohan Shenoy, UCSD
 """
 
 import numpy as np
@@ -29,14 +29,12 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 class EMD_CNN:
     
-    use443=True
     X1_train=[]
     X2_train=[]
     
-    def __init__(self,use443):
-        self.use443=use443
-    
-    def ittrain(self,data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs):
+    def __init__(self):
+            
+    def ittrain(self,calQ_data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs):
         
         current_directory=os.getcwd()
         
@@ -58,7 +56,9 @@ class EMD_CNN:
                                14,30, 46,
                                15,31, 47])
         
-        calQ     = np.genfromtxt(data, delimiter=',',usecols=[*range(0, 48)],skip_header=2000,max_rows=300)
+        print(calQ_data)
+        print("here")
+        calQ     = calQ_data
         sumQ     = calQ.sum(axis=1)
         calQ     = calQ[sumQ>0]
         sumQ     = sumQ[sumQ>0]
@@ -68,17 +68,15 @@ class EMD_CNN:
         calQ_443 = (calQ/np.expand_dims(sumQ,-1))[:,arrange443].reshape(-1,4,4,3)
     
         # split train and validation so there is no overlap in samples whatsoever
-        train_indices = range(0, int(0.8*len(calQ)))
-        val_indices = range(int(0.2*len(calQ)), len(calQ))
-        
+        train_indices = range(0, int(0.6*len(calQ)))
+        val_indices = range(int(0.6*len(calQ)), len(calQ))
+        print("check1")
         idx1_train = np.array([i for i,j in itertools.product(train_indices,train_indices)])
         idx2_train = np.array([j for i,j in itertools.product(train_indices,train_indices)])
-    
-        if self.use443:
-            X = calQ_443
-        else:
-            X = calQ
-         
+        print("check2")
+        
+        X = calQ_443
+                 
         X1_train = X[idx1_train]
         X2_train = X[idx2_train]
         y_train = np.array([emd(calQ[i],calQ[j]) for i, j in zip(idx1_train, idx2_train)])
@@ -100,57 +98,37 @@ class EMD_CNN:
     
         #Building CNN
         
-        if self.use443:
-            # make a convolutional model as a more advanced PoC
-            input1 = Input(shape=(4, 4, 3,), name='input_1')
-            input2 = Input(shape=(4, 4, 3,), name='input_2')
-            x = Concatenate(name='concat')([input1, input2])
+        # make a convolutional model as a more advanced PoC
+        input1 = Input(shape=(4, 4, 3,), name='input_1')
+        input2 = Input(shape=(4, 4, 3,), name='input_2')
+        x = Concatenate(name='concat')([input1, input2])
             
-            #Number of Conv2D Layers
-            for i in range(1,num_conv_2d+1):
-                ind=str(i)
-                x = Conv2D(num_filt, kernel_size, strides=(1, 1), name='conv2d_'+ind, padding='same', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-                x = BatchNormalization(name='batchnorm_'+ind)(x)
-                x = Activation('relu', name='relu_'+ind)(x)
+        #Number of Conv2D Layers
+        for i in range(1,num_conv_2d+1):
+            ind=str(i)
+            x = Conv2D(num_filt, kernel_size, strides=(1, 1), name='conv2d_'+ind, padding='same', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
+            x = BatchNormalization(name='batchnorm_'+ind)(x)
+            x = Activation('relu', name='relu_'+ind)(x)
                 
-            x = Flatten(name='flatten')(x)
+        x = Flatten(name='flatten')(x)
             
-            #Number of Dense Layers
-            for i in range(1,num_dens_layers+1):
-                ind=str(i)
-                jind=str(i+num_conv_2d)
-                x = Dense(num_dens_neurons, name='dense_'+ind, kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-                x = BatchNormalization(name='batchnorm'+jind)(x)
-                x = Activation('relu', name='relu_'+jind)(x)
+        #Number of Dense Layers
+        for i in range(1,num_dens_layers+1):
+            ind=str(i)
+            jind=str(i+num_conv_2d)
+            x = Dense(num_dens_neurons, name='dense_'+ind, kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
+            x = BatchNormalization(name='batchnorm'+jind)(x)
+            x = Activation('relu', name='relu_'+jind)(x)
                 
-            output = Dense(1, name='output')(x)
-            model = Model(inputs=[input1, input2], outputs=output, name='base_model')
-            model.summary()
-        else:
-            # make a simple fully connected model as a PoC
-            input1 = Input(shape=(48,), name='input_1')
-            input2 = Input(shape=(48,), name='input_2')
-            x = Concatenate(name='concat')([input1, input2])
-            x = Flatten(name='flatten')(x)
-            x = Dense(128, name='dense_1', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-            x = BatchNormalization(name='batchnorm_1')(x)
-            x = Activation('relu', name='relu_1')(x)
-            x = Dense(128, name='dense_2', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-            x = BatchNormalization(name='batchnorm_2')(x)
-            x = Activation('relu', name='relu_2')(x)
-            x = Dense(128, name='dense_3', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-            x = BatchNormalization(name='batchnorm_3')(x)
-            x = Activation('relu', name='relu_3')(x)
-            output = Dense(1, name='output')(x)
-            model = Model(inputs=[input1, input2], outputs=output, name='base_model')
-            model.summary()
-        
+        output = Dense(1, name='output')(x)
+        model = Model(inputs=[input1, input2], outputs=output, name='base_model')
+        model.summary()
+                
         # make a model that enforces the symmetry of the EMD function by averging the outputs for swapped inputs
         output = Average(name='average')([model((input1, input2)), model((input2, input1))])
         sym_model = Model(inputs=[input1, input2], outputs=output, name='sym_model')
         sym_model.summary()
         
-        current_directory=os.getcwd()
         final_directory=os.path.join(current_directory,r'emd_loss_models')
         if not os.path.exists(final_directory):
             os.makedirs(final_directory)
@@ -165,11 +143,9 @@ class EMD_CNN:
         
         #Making directory for graphs
         
-        current_directory=os.getcwd()
-        img_directory=os.path.join(current_directory,r'EMD Huber Performance Plots 2 Elinks Huber')
+        img_directory=os.path.join(current_directory,r'EMD Performance Plots')
         if not os.path.exists(img_directory):
             os.makedirs(img_directory)
-        
         
         #Plot Validation loss and training loss
         
@@ -179,7 +155,7 @@ class EMD_CNN:
         fig=plt.xlabel('Epoch')
         fig=plt.ylabel('MSLE loss')
         fig=plt.legend()
-        plt.savefig(img_directory+"/-"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Loss.png")
+        plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Loss.png")
         plt.close()
         
         #Plots True EMD and Pred Emd Histogram
@@ -192,7 +168,7 @@ class EMD_CNN:
         fig=plt.xlabel('EMD [GeV]')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/-"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Hist.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Hist.png")
         plt.close()
         
         #Plot Relative Difference
@@ -204,20 +180,20 @@ class EMD_CNN:
         fig=plt.xlabel('EMD rel. diff.')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/-"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"RelD.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"RelD.png")
         plt.close()
         
         #Plot True EMD vs Pred Emd Graphic
         
         plt.close()
         fig, ax = plt.subplots(figsize =(5, 5)) 
-        x_bins = np.arange(0, 10, 0.1)
-        y_bins = np.arange(0, 10, 0.1)
+        x_bins = np.arange(0, 15, 0.1)
+        y_bins = np.arange(0, 15, 0.1)
         plt.hist2d(y_val.flatten(), y_val_preds.flatten(), bins=[x_bins,y_bins])
         plt.plot([0, 15], [0, 15], color='gray', alpha=0.5)
         ax.set_xlabel('True EMD [GeV]')
         ax.set_ylabel('Pred. EMD [GeV]')
-        fig=plt.savefig(img_directory+"/-"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Graphic.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Graphic.png")
         plt.close()
         
         return(np.mean(rel_diff),np.std(rel_diff))
