@@ -50,7 +50,7 @@ Vary the  number of best models to be saved as such:
 The default model uses the telescope loss, we can compare the performance of the autoencoder with the emd_loss's as such:
 
 ```
-python3 train.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/  -o ./test/ --epoch 1 --AEonly 1 --nELinks 5 --nrowsPerFile 500 --noHeader --models 8x8_c8_S2_tele,8x8_c8_S2_emd6
+python3 train.py -i data/V11/SampleSplitting_SignalAllocation/nElinks_5/shuffled/  -o ./test/ --epoch 1 --AEonly 1 --nELinks 5 --nrowsPerFile 500 --noHeader --models 8x8_c8_S2_tele,8x8_c8_S2_emdCNN
 ```
 
 here:
