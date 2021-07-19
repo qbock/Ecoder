@@ -32,8 +32,6 @@ class EMD_CNN:
     X1_train=[]
     X2_train=[]
     
-    def __init__(self):
-            
     def ittrain(self,calQ_data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs):
         
         current_directory=os.getcwd()
