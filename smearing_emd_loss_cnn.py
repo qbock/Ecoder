@@ -65,8 +65,8 @@ class EMD_CNN:
         calQ_443 = (calQ/np.expand_dims(sumQ,-1))[:,arrange443].reshape(-1,4,4,3)
     
         # split train and validation so there is no overlap in samples whatsoever
-        
-        #Smearing first 5 percent of input data
+        #SMEARING METHOD 2
+        #Smearing first 1 percent of trainining indices
         smear_indices=range(0,int(0.1*len(calQ)))
         train_indices = range(int(0.1*len(calQ)), int(0.6*len(calQ)))
         val_indices = range(int(0.6*len(calQ)), len(calQ))
@@ -134,10 +134,12 @@ class EMD_CNN:
         model.summary()
                 
         # make a model that enforces the symmetry of the EMD function by averging the outputs for swapped inputs
-        #Implement smearing
+        
+        #SMEARING METHOD 1
         
         smeared_input1=smearing*input1
         smeared_input2=smearing*input2
+        #output = Average(name='average')([model((input1, smearing*input2)), model((input2, smeared_input1))])
         output = Average(name='average')([model((input1, input2)), model((input2, input1))])
         sym_model = Model(inputs=[input1, input2], outputs=output, name='sym_model')
         sym_model.summary()
