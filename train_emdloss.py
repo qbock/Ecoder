@@ -229,15 +229,15 @@ def main(args):
     # and Renaming them to {i}.h5, i={1,2,...}
 
     model_directory=os.path.join(os.getcwd(),r'emd_loss_models')
-    i=1
+    j=1
     for models in best:
         mpath=os.path.join(model_directory,str(models[1])+str(models[2])+str(models[3])+str(models[4])+str(models[5])+str(models[6])+'best.h5')
         best_path=os.path.join(os.getcwd(),'best_emd')
         
         if not os.path.exists(best_path):
                 os.makedirs(best_path)
-        os.rename(mpath,os.getcwd()+'/best_emd/'+str(i)+'.h5')
-        i+=1
+        os.rename(mpath,os.getcwd()+'/best_emd/'+str(j)+'.h5')
+        j+=1
 
 if __name__ == '__main__':
     args = parser.parse_args()
