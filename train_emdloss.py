@@ -3,6 +3,7 @@ For training EMD_CNN with different hyperparameters
 @author: Rohan
 """
 import emd_loss_cnn #Script for training the CNN to approximate EMD
+from true_emd_cnn import true_EMD_CNN
 import pandas as pd
 import os
 import numpy as np
@@ -14,7 +15,9 @@ parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="in
                     help="input TSG files")
 parser.add_argument("--epochs", type=int, default = 64, dest="num_epochs",
                     help="number of epochs to train")
-parser.add_argument("--bestEMD", type=int, default = 8, dest="best_num",
+parser.add_argument("--trueEMD", action='store_true', default = False,dest="trueEMD",
+                    help="train EMD_CNN on [input,AE(input)] data")
+parser.add_argument("--bestEMD", type=int, default = 1, dest="best_num",
                     help="number of emd_models to save")
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
                     help="n of active transceiver e-links eTX")
@@ -159,8 +162,7 @@ def main(args):
               [128,5,64,1,3],
               [32,5,128,1,3],
               [128,3,256,1,4],
-              [128,5,256,1,4]
-             ]
+              [128,5,256,1,4]]
     
     num_epochs=args.num_epochs
     best_num=args.best_num
@@ -179,8 +181,12 @@ def main(args):
         #Each model per set of hyperparamters is trained thrice to avoid bad initialitazion discarding a good model. (We vary num_epochs by 1 to differentiate between these 3 trainings)
         
         for i in [0,1,2]:
-            obj=emd_loss_cnn.EMD_CNN()
-            mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+            mean ,sd=0, 0
+            if(args.trueEMD):
+                mean,sd=true_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+            else:
+                obj=emd_loss_cnn.EMD_CNN()
+                mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             mean_data.append(mean)
             std_data.append(sd)
             nfilt_data.append(num_filt)
@@ -220,14 +226,16 @@ def main(args):
 
     #Preparing Best EMD Loss Models for ECON Training as {i}.h5, which during CNN optimization were saved as: 
     #(num_filt)+(kernel_size)+(num_dens_neurons)+(num_dens_layers)+(num_conv_2d)+(num_epochs)+best.h5 
-    # and Renaming them to {i}.h5, i={1,2,...8}
+    # and Renaming them to {i}.h5, i={1,2,...}
 
     model_directory=os.path.join(os.getcwd(),r'emd_loss_models')
     i=1
     for models in best:
         mpath=os.path.join(model_directory,str(models[1])+str(models[2])+str(models[3])+str(models[4])+str(models[5])+str(models[6])+'best.h5')
         best_path=os.path.join(os.getcwd(),'best_emd')
-        os.mkdir(best_path)
+        
+        if not os.path.exists(best_path):
+                os.makedirs(best_path)
         os.rename(mpath,os.getcwd()+'/best_emd/'+str(i)+'.h5')
         i+=1
 
