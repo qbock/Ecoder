@@ -1,9 +1,8 @@
 """
 For training EMD_CNN with different hyperparameters
-@author: Rohan
 """
-import emd_loss_cnn #Script for training the CNN to approximate EMD
-from true_emd_cnn import true_EMD_CNN
+import pair_emd_loss_cnn #Script for training the CNN to approximate EMD using pairs of real inputs
+from ae_emd_cnn import ae_EMD_CNN #Approximating EMD using [input,AE] pairs
 import pandas as pd
 import os
 import numpy as np
@@ -15,43 +14,17 @@ parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="in
                     help="input TSG files")
 parser.add_argument("--epochs", type=int, default = 64, dest="num_epochs",
                     help="number of epochs to train")
-parser.add_argument("--trueEMD", action='store_true', default = False,dest="trueEMD",
+parser.add_argument("--aeEMD", action='store_true', default = False,dest="aeEMD",
                     help="train EMD_CNN on [input,AE(input)] data")
 parser.add_argument("--bestEMD", type=int, default = 1, dest="best_num",
                     help="number of emd_models to save")
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
                     help="n of active transceiver e-links eTX")
 
-parser.add_argument("--skipPlot", action='store_true', default=False, dest="skipPlot",
-                    help="skip the plotting step")
-parser.add_argument("--full", action='store_true', default = False,dest="full",
-                    help="run all algorithms and metrics")
-
-parser.add_argument("--quickTrain", action='store_true', default = False,dest="quickTrain",
-                    help="train w only 5k events for testing purposes")
-parser.add_argument("--retrain", action='store_true', default = False,dest="retrain",
-                    help="retrain models even if weights are already present for testing purposes")
-parser.add_argument("--evalOnly", action='store_true', default = False,dest="evalOnly",
-                    help="only evaluate the NN on the input sample, no train")
-
 parser.add_argument("--double", action='store_true', default = False,dest="double",
                     help="test PU400 by combining PU200 events")
-parser.add_argument("--overrideInput", action='store_true', default = False,dest="overrideInput",
-                    help="disable safety check on inputs")
-parser.add_argument("--nCSV", type=int, default = 1, dest="nCSV",
-                    help="n of validation events to write to csv")
-parser.add_argument("--maxVal", type=int, default = -1, dest="maxVal",
-                    help="clip outputs to maxVal")
-parser.add_argument("--AEonly", type=int, default=1, dest="AEonly",
-                    help="run only AE algo")
-parser.add_argument("--rescaleInputToMax", action='store_true', default=False, dest="rescaleInputToMax",
-                    help="rescale the input images so the maximum deposit is 1. Else normalize")
-parser.add_argument("--rescaleOutputToMax", action='store_true', default=False, dest="rescaleOutputToMax",
-                    help="rescale the output images to match the initial sum of charge")
 parser.add_argument("--nrowsPerFile", type=int, default=500, dest="nrowsPerFile",
                     help="load nrowsPerFile in a directory")
-parser.add_argument("--occReweight", action='store_true', default = False,dest="occReweight",
-                    help="train with per-event weight on TC occupancy")
 
 parser.add_argument("--maskPartials", action='store_true', default = False,dest="maskPartials",
                     help="mask partial modules")
@@ -61,9 +34,6 @@ parser.add_argument("--saveEnergy", action='store_true', default = False,dest="s
                     help="save SimEnergy from input data")
 parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
                     help="input data has no header")
-
-parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models",
-                    help="models to run, if empty string run all")
 
 def main(args):
 
@@ -182,8 +152,8 @@ def main(args):
         
         for i in [0,1,2]:
             mean ,sd=0, 0
-            if(args.trueEMD):
-                mean,sd=true_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+            if(args.aeEMD):
+                mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             else:
                 obj=emd_loss_cnn.EMD_CNN()
                 mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
@@ -228,7 +198,12 @@ def main(args):
     #(num_filt)+(kernel_size)+(num_dens_neurons)+(num_dens_layers)+(num_conv_2d)+(num_epochs)+best.h5 
     # and Renaming them to {i}.h5, i={1,2,...}
 
-    model_directory=os.path.join(os.getcwd(),r'emd_loss_models')
+    model_directory=""
+    if(args.aeEMD):
+        model_directory=os.path.join(os.getcwd(),r'ae_emd_loss_models')
+    else:
+        model_directory=os.path.join(os.getcwd(),r'pair_emd_loss_models')
+    
     j=1
     for models in best:
         mpath=os.path.join(model_directory,str(models[1])+str(models[2])+str(models[3])+str(models[4])+str(models[5])+str(models[6])+'best.h5')
