@@ -124,11 +124,11 @@ class EMD_CNN:
         sym_model = Model(inputs=[input1, input2], outputs=output, name='sym_model')
         sym_model.summary()
         
-        final_directory=os.path.join(current_directory,r'emd_loss_models')
+        final_directory=os.path.join(current_directory,r'pair_emd_loss_models')
         if not os.path.exists(final_directory):
             os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                     ModelCheckpoint('emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('pair_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                     ModelCheckpoint('pair_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
             
         sym_model.compile(optimizer='adam', loss='huber_loss', metrics=['mse', 'mae', 'mape', 'msle'])
@@ -138,7 +138,7 @@ class EMD_CNN:
         
         #Making directory for graphs
         
-        img_directory=os.path.join(current_directory,r'EMD Performance Plots')
+        img_directory=os.path.join(current_directory,r'EMD Performance Plots pairwise training')
         if not os.path.exists(img_directory):
             os.makedirs(img_directory)
         
