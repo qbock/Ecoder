@@ -155,7 +155,7 @@ def main(args):
             if(args.aeEMD):
                 mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             else:
-                obj=emd_loss_cnn.EMD_CNN()
+                obj=pair_emd_loss_cnn.EMD_CNN()
                 mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             mean_data.append(mean)
             std_data.append(sd)
