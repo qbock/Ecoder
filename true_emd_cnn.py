@@ -111,11 +111,6 @@ class true_EMD_CNN:
         r = tf.reshape(r, (-1, 4, 4, 3))
         calA_443=r
 
-        print("Data Shapes")
-        print(calQ_443.shape)
-        print(calA_443.shape)
-
-
         train_indices = range(0, int(0.6*len(calQ)))
         val_indices = range(int(0.6*len(calQ)), len(calQ))
 
@@ -172,11 +167,11 @@ class true_EMD_CNN:
         model = Model(inputs=[input1, input2], outputs=output, name='base_model')
         model.summary()
 
-        final_directory=os.path.join(current_directory,r'emd_loss_models')
+        final_directory=os.path.join(current_directory,r'ae_emd_loss_models')
         if not os.path.exists(final_directory):
                 os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                        ModelCheckpoint('emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('ae_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                        ModelCheckpoint('ae_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
 
         model.compile(optimizer='adam', loss='msle', metrics=['mse', 'mae', 'mape', 'msle'])
@@ -186,7 +181,7 @@ class true_EMD_CNN:
         
                 #Making directory for graphs
 
-        img_directory=os.path.join(current_directory,r'Performance on Predicting True EMD')
+        img_directory=os.path.join(current_directory,r'Performance on Predicting True ae_EMD Plots')
         if not os.path.exists(img_directory):
             os.makedirs(img_directory)
 
