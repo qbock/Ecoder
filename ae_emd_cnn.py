@@ -30,7 +30,7 @@ from tensorflow.keras.regularizers import l1_l2
         
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-class true_EMD_CNN:
+class ae_EMD_CNN:
     
     X1_train=[]
     X2_train=[]
