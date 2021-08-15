@@ -174,7 +174,7 @@ class ae_EMD_CNN:
                         ModelCheckpoint('ae_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
 
-        model.compile(optimizer='adam', loss='msle', metrics=['mse', 'mae', 'mape', 'msle'])
+        model.compile(optimizer='adam', loss='huber_loss', metrics=['mse', 'mae', 'mape', 'msle'])
         history = model.fit((X1_train, X2_train), y_train, 
                             validation_data=((X1_val, X2_val), y_val),
                             epochs=num_epochs, verbose=1, batch_size=32, callbacks=callbacks)
