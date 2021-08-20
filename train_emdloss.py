@@ -3,7 +3,7 @@ For training EMD_CNN with different hyperparameters
 """
 import pair_emd_loss_cnn #Script for training the CNN to approximate EMD using pairs of real inputs
 from ae_emd_cnn import ae_EMD_CNN #Approximating EMD using [input,AE] pairs
-from app_emd_cnn import app_EMD_CNN
+from app_emd_cnn import app_EMD_CNN #EMD using both of the above datasets
 import pandas as pd
 import os
 import numpy as np
@@ -198,26 +198,6 @@ def main(args):
 
     df=pd.DataFrame(best)
     df.to_excel(best_data_directory)
-
-    #Preparing Best EMD Loss Models for ECON Training as {i}.h5, which during CNN optimization were saved as: 
-    #(num_filt)+(kernel_size)+(num_dens_neurons)+(num_dens_layers)+(num_conv_2d)+(num_epochs)+best.h5 
-    # and Renaming them to {i}.h5, i={1,2,...}
-
-    model_directory=""
-    if(args.aeEMD):
-        model_directory=os.path.join(os.getcwd(),r'ae_emd_loss_models')
-    else:
-        model_directory=os.path.join(os.getcwd(),r'pair_emd_loss_models')
-    
-    j=1
-    for models in best:
-        mpath=os.path.join(model_directory,str(models[1])+str(models[2])+str(models[3])+str(models[4])+str(models[5])+str(models[6])+'best.h5')
-        best_path=os.path.join(os.getcwd(),'best_emd')
-        
-        if not os.path.exists(best_path):
-                os.makedirs(best_path)
-        os.rename(mpath,os.getcwd()+'/best_emd/'+str(j)+'.h5')
-        j+=1
 
 if __name__ == '__main__':
     args = parser.parse_args()
