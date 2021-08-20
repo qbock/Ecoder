@@ -3,6 +3,7 @@ For training EMD_CNN with different hyperparameters
 """
 import pair_emd_loss_cnn #Script for training the CNN to approximate EMD using pairs of real inputs
 from ae_emd_cnn import ae_EMD_CNN #Approximating EMD using [input,AE] pairs
+from app_emd_cnn import app_EMD_CNN
 import pandas as pd
 import os
 import numpy as np
@@ -16,6 +17,8 @@ parser.add_argument("--epochs", type=int, default = 64, dest="num_epochs",
                     help="number of epochs to train")
 parser.add_argument("--aeEMD", action='store_true', default = False,dest="aeEMD",
                     help="train EMD_CNN on [input,AE(input)] data")
+parser.add_argument("--appEMD", action='store_true', default = False,dest="appEMD",
+                    help="train EMD_CNN on pair+[input,AE(input)] data")
 parser.add_argument("--bestEMD", type=int, default = 1, dest="best_num",
                     help="number of emd_models to save")
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
@@ -154,9 +157,11 @@ def main(args):
             mean ,sd=0, 0
             if(args.aeEMD):
                 mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+            elif(args.appEMD):
+                mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)    
             else:
                 obj=pair_emd_loss_cnn.EMD_CNN()
-                mean, sd = obj.ittrain(data, num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+                mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
             mean_data.append(mean)
             std_data.append(sd)
             nfilt_data.append(num_filt)
