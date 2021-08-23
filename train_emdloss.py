@@ -137,6 +137,8 @@ def main(args):
               [128,3,256,1,4],
               [128,5,256,1,4]]
     
+    loss_list=['huber_loss','msle','mse']
+    
     num_epochs=args.num_epochs
     best_num=args.best_num
 
@@ -153,36 +155,39 @@ def main(args):
         
         #Each model per set of hyperparamters is trained thrice to avoid bad initialitazion discarding a good model. (We vary num_epochs by 1 to differentiate between these 3 trainings)
         
-        for i in [0,1,2]:
-            mean ,sd=0, 0
-            if(args.aeEMD):
-                mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
-            elif(args.appEMD):
-                mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)    
-            else:
-                obj=pair_emd_loss_cnn.EMD_CNN()
-                mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
-            mean_data.append(mean)
-            std_data.append(sd)
-            nfilt_data.append(num_filt)
-            ksize_data.append(kernel_size)
-            neuron_data.append(num_dens_neurons)
-            numlayer_data.append(num_dens_layers)
-            convlayer_data.append(num_conv_2d)
-            epoch_data.append(num_epochs+i)
-            z=abs(mean)/sd
-            z_score.append(z)
+        for Loss in loss_list:
             
-            #The best 8 models are saved in a list, as [sd, num_filt,kernel_size,num_dens_neurons,num_dens_layers,num_conv_2d,num_epochs+i]
-            #We rank the models per their standard deviation(sd), ie model[0] 
+        
+            for i in [0,1,2]:
+                mean ,sd=0, 0
+                if(args.aeEMD):
+                    mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+                elif(args.appEMD):
+                    mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)    
+                else:
+                    obj=pair_emd_loss_cnn.pair_EMD_CNN()
+                    mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+                mean_data.append(mean)
+                std_data.append(sd)
+                nfilt_data.append(num_filt)
+                ksize_data.append(kernel_size)
+                neuron_data.append(num_dens_neurons)
+                numlayer_data.append(num_dens_layers)
+                convlayer_data.append(num_conv_2d)
+                epoch_data.append(num_epochs+i)
+                z=abs(mean)/sd
+                z_score.append(z)
 
-            max=0;
-            for j in range(0,best_num):
-                model=best[j]
-                maximum=best[max]
-                if model[0]>maximum[0]:
-                    max=j
-            best[max]=[sd,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i]
+                #The best 8 models are saved in a list, as [sd, num_filt,kernel_size,num_dens_neurons,num_dens_layers,num_conv_2d,num_epochs+i]
+                #We rank the models per their standard deviation(sd), ie model[0] 
+
+                max=0;
+                for j in range(0,best_num):
+                    model=best[j]
+                    maximum=best[max]
+                    if model[0]>maximum[0]:
+                        max=j
+                best[max]=[sd,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i]
 
 
     for_pdata=[mean_data,std_data,nfilt_data,ksize_data,neuron_data,numlayer_data,convlayer_data,z_score,epoch_data]
