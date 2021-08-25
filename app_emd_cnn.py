@@ -280,7 +280,7 @@ class app_EMD_CNN:
         fig=plt.xlabel('EMD [GeV]')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)Loss+"Hist.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Hist.png")
         plt.close()
         
         #Plot Relative Difference
