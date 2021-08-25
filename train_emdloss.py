@@ -161,12 +161,12 @@ def main(args):
             for i in [0,1,2]:
                 mean ,sd=0, 0
                 if(args.aeEMD):
-                    mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+                    mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)
                 elif(args.appEMD):
-                    mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)    
+                    mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)    
                 else:
                     obj=pair_emd_loss_cnn.pair_EMD_CNN()
-                    mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i)
+                    mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)
                 mean_data.append(mean)
                 std_data.append(sd)
                 nfilt_data.append(num_filt)
