@@ -47,7 +47,7 @@ class ae_EMD_CNN:
         current_directory=os.getcwd()
         
         #Take dataset from previous Autoencoder Training
-        csv_directory=os.path.join(current_directory,'test','8x8_c8_S2_tele')
+        csv_directory=os.path.join(current_directory,'test_ae','8x8_c8_S2_tele')
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_data(input_loc)
