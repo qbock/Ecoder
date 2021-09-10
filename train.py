@@ -6,7 +6,7 @@ import pickle
 import os
 import numba
 
-rom pathlib import Path
+from pathlib import Path
 
 class DisplayablePath(object):
     display_filename_prefix_middle = '├──'
