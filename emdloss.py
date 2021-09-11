@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import math
 import os
-
+import hdf5plugin
+import h5py
 from tensorflow.keras.layers import Input, Dense, Flatten, Concatenate, BatchNormalization, Activation, Average, Conv2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l1_l2
