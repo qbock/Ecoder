@@ -53,7 +53,7 @@ def get_emd_loss(model_number):
     
     #model_path=os.getcwd()+'/best_emd/'+str(model_number)+'.h5'
     #prp 
-    model_path='opt/reco/Ecoder/best_emd/'++str(model_number)+'.h5'        
+    model_path='opt/reco/Ecoder/best_emd/'+str(model_number)+'.h5'        
     emd_model = tf.keras.models.load_model(model_path)
     emd_model.trainable = False
                  
