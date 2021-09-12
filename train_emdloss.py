@@ -42,9 +42,10 @@ parser.add_argument("--saveEnergy", action='store_true', default = False,dest="s
 
 
 def main(args):
-
-    data=load_data(args)
-
+  
+    if(not args.aeEMD):
+        data=load_data(args)
+    
     current_directory=os.getcwd()
 
     #Data to track the performance of various EMD_CNN models
