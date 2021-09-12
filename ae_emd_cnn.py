@@ -35,7 +35,7 @@ class ae_EMD_CNN:
     X1_train=[]
     X2_train=[]
     
-    def ittrain(num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
+    def ittrain(test_ae_directory,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
         
         def load_data(inputFile):
             
@@ -46,8 +46,8 @@ class ae_EMD_CNN:
         
         current_directory=os.getcwd()
         
-        #Take dataset from previous Autoencoder Training
-        csv_directory=os.path.join(current_directory,'test_ae','8x8_c8_S2_tele')
+        #Take dataset PASSED from previous Autoencoder Training
+        csv_directory=os.path.join(test_ae_directory,'8x8_c8_S2_tele')
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_data(input_loc)
