@@ -11,11 +11,13 @@ import argparse
 from utils.logger import _logger
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="inputFile",
-                    help="input TSG files")
+parser.add_argument('-i',"--inputFile", type=str, default='test_ae/', dest="inputFile",
+                    help="previous AE training")
 parser.add_argument("--epochs", type=int, default = 64, dest="num_epochs",
                     help="number of epochs to train")
-parser.add_argument("--aeEMD", action='store_true', default = False,dest="aeEMD",
+parser.add_argument("--pairEMD", action='store_true', default = False,dest="pairEMD",
+                    help="train EMD_CNN on pairs of real data")
+parser.add_argument("--aeEMD", action='store_true', default = True,dest="aeEMD",
                     help="train EMD_CNN on [input,AE(input)] data")
 parser.add_argument("--appEMD", action='store_true', default = False,dest="appEMD",
                     help="train EMD_CNN on pair+[input,AE(input)] data")
@@ -161,10 +163,10 @@ def main(args):
             for i in [0,1,2]:
                 mean ,sd=0, 0
                 if(args.aeEMD):
-                    mean,sd=ae_EMD_CNN.ittrain(num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)
+                    mean,sd=ae_EMD_CNN.ittrain(inputFile,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)
                 elif(args.appEMD):
-                    mean,sd=app_EMD_CNN.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)    
-                else:
+                    mean,sd=app_EMD_CNN.ittrain(data,inputFile,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)    
+                elif(args.appEMD):
                     obj=pair_emd_loss_cnn.pair_EMD_CNN()
                     mean, sd = obj.ittrain(data,num_filt,kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d,num_epochs+i,Loss)
                 mean_data.append(mean)
