@@ -196,7 +196,7 @@ networks_by_name = [
      'arr_key':'8x8',
      'params':{
          'shape':(8,8,1),
-         'loss':get_emd_loss("ae_emd"),
+         'loss':get_emd_loss("ae_huber"),
          'CNN_layer_nodes':[8],
          'CNN_kernel_size':[3],
          'CNN_strides':[(2,2)],
@@ -207,7 +207,7 @@ networks_by_name = [
      'arr_key':'8x8',
      'params':{
          'shape':(8,8,1),
-         'loss':get_emd_loss("app"),
+         'loss':get_emd_loss("app_huber"),
          'CNN_layer_nodes':[8],
          'CNN_kernel_size':[3],
          'CNN_strides':[(2,2)],

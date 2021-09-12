@@ -58,7 +58,7 @@ class app_EMD_CNN:
             return data_values
         
         #Take data from previous Autoencoder Training
-        csv_directory=os.path.join(test_ae_directory,'8x8_c8_S2_tele')
+        csv_directory=os.path.join('ecoderemdvol','test_ae','8x8_c8_S2_tele')
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_ae_data(input_loc)
@@ -92,14 +92,6 @@ class app_EMD_CNN:
 
         calQ2_443 = (calQ2/np.expand_dims(sumQ2,-1))[:,arrange443].reshape(-1,4,4,3)
 
-        """
-        #Generate True EMD for testing_data
-        test_index=min(len(calQ1),len(calQ2))
-        test_indices = range(0,test_index)
-
-        ae_emd_values = np.array([emd(calQ1[i],calQ2[j]) for i, j in zip(test_indices,test_indices)])
-        """
-        
         #Formatting data for real pairs
         calQ     = q_real_data
         sumQ     = calQ.sum(axis=1)
@@ -108,32 +100,6 @@ class app_EMD_CNN:
 
         calQ_443 = (calQ/np.expand_dims(sumQ,-1))[:,arrange443].reshape(-1,4,4,3)
         
-        """
-
-        test_indices = range(0,len(calQ))
-
-        idx1_test = np.array([i for i,j in itertools.product(test_indices,test_indices)])
-        idx2_test = np.array([j for i,j in itertools.product(test_indices,test_indices)])
-
-        pair_emd_values = np.array([emd(calQ[i],calQ[j]) for i, j in zip(idx1_test, idx2_test)])
-                             
-        print(ae_emd_values.shape)
-        print(pair_emd_values.shape)
-        
-        union_emd_values=np.concatenate((ae_emd_values,pair_emd_values))
-        print(union_emd_values.shape)
-        
-        
-                        
-        
-        fig=plt.figure()
-        fig=plt.hist(union_emd_values, alpha=1, bins=np.arange(0, 7.5,0.01), label='TrueEMD')
-        fig=plt.xlabel('EMD [GeV]')
-        fig=plt.ylabel('Samples')
-        fig=plt.legend()
-        plt.savefig(os.path.join(current_directory,img_directory,'UnionEMD.png'))
-        plt.show()
-        """                     
         #Splitting into training and validation data for AE data
 
         ae_train_indices = range(0, int(0.6*len(calQ1)))
@@ -246,8 +212,8 @@ class app_EMD_CNN:
         final_directory=os.path.join(current_directory,r'app_emd_models')
         if not os.path.exists(final_directory):
             os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                        ModelCheckpoint('app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                        ModelCheckpoint('app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
 
         sym_model.compile(optimizer='adam', loss=Loss, metrics=['mse', 'mae', 'mape', 'msle'])

@@ -37,7 +37,7 @@ arrange443 = np.array([0,16, 32,
 
 def get_emd_loss(model_number):
     """
-     model_path: path to EMD model h5 file, saved at /best_emd/1.h5
+     model_path: path to best EMD model h5 file, saved at /ecoderemdvol/best_emd/
      Input comes in in 8x8 looking like this:
      arrange8x8 = np.array([
          28,29,30,31,0,4,8,12,
@@ -51,7 +51,7 @@ def get_emd_loss(model_number):
      Remapping using array from telescope.py  
   """
     
-    model_path=os.getcwd()+'/best_emd/'+str(model_number)+'.h5'
+    model_path='/ecoderemdvol/best_emd/'+str(model_number)+'.h5'
     emd_model = tf.keras.models.load_model(model_path)
     emd_model.trainable = False
                  
