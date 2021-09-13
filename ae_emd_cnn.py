@@ -44,7 +44,7 @@ class ae_EMD_CNN:
             
             return data_values
         
-        current_directory=os.getcwd()
+        current_directory='/ecoderemdvol/ae'
         
         #Take dataset PASSED from previous Autoencoder Training
         csv_directory=os.path.join(test_ae_directory,'8x8_c8_S2_tele')
