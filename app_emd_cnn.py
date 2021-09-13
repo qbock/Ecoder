@@ -58,7 +58,7 @@ class app_EMD_CNN:
             return data_values
         
         #Take data from previous Autoencoder Training
-        csv_directory=os.path.join('ecoderemdvol','test_ae','8x8_c8_S2_tele')
+        csv_directory='/ecoderemdvol/test_ae/8x8_c8_S2_tele'
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_ae_data(input_loc)
