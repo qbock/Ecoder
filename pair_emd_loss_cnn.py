@@ -34,7 +34,7 @@ class pair_EMD_CNN:
     
     def ittrain(self,calQ_data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
         
-        current_directory=os.getcwd()
+        current_directory='/ecoderemdvol/pair'
         
         #Arranging the hexagon
         arrange443 = np.array([0,16, 32,
