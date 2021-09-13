@@ -46,7 +46,7 @@ def main(args):
     if(not args.aeEMD):
         data=load_data(args)
     
-    current_directory=os.getcwd()
+    current_directory='/ecoderemdvol'
 
     #Data to track the performance of various EMD_CNN models
 
@@ -110,7 +110,14 @@ def main(args):
 
     #Saving data from the entire optimization training 
     
-    opt_data_directory=os.path.join(current_directory,r'EMD_Loss CNN Optimization Data.xlsx')
+    if(args.aeEMD):
+        opt_data_directory=os.path.join(current_directory,'ae','EMD CNN Optimization Data.xlsx')
+    if(args.appEMD):
+        opt_data_directory=os.path.join(current_directory,'app','EMD CNN Optimization Data.xlsx')
+    if(args.pairEMD):
+        opt_data_directory=os.path.join(current_directory,'pair','EMD CNN Optimization Data.xlsx')     
+      
+    opt_data_directory=os.path.join(current_directory CNN Optimization Data.xlsx')
     df=pd.DataFrame(for_pdata)
     df.to_excel(opt_data_directory)
 
