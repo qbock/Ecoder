@@ -210,7 +210,10 @@ networks_by_name = [
     {'name':'8x8_c8_S2_ae_huber',
          'label':'8x8_c[8]_S2(ae_huber)',
      'arr_key':'8x8',
-@@ -227,66 +203,6 @@
+     'params':{
+         'shape':(8,8,1),
+         'loss':get_emd_loss("ae_huber"),
+         'CNN_layer_nodes':[8],
          'CNN_kernel_size':[3],
          'CNN_strides':[(2,2)],
         },
