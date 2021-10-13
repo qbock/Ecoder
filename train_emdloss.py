@@ -46,7 +46,7 @@ def main(args):
     if(not args.aeEMD):
         data=load_data(args)
     
-    current_directory='/ecoderemdvol'
+    current_directory=os.getcwd()
 
     #Data to track the performance of various EMD_CNN models
 
