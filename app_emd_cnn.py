@@ -31,7 +31,7 @@ class app_EMD_CNN:
     
     def ittrain(real_calQ_data,test_ae_directory,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
         
-        current_directory='/ecoderemdvol/app'
+        current_directory=os.getcwd()
         
         #Arranging the hexagon
         arrange443 = np.array([0,16, 32,
