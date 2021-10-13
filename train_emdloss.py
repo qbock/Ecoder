@@ -115,9 +115,7 @@ def main(args):
     if(args.appEMD):
         opt_data_directory=os.path.join(current_directory,'app','EMD CNN Optimization Data.xlsx')
     if(args.pairEMD):
-        opt_data_directory=os.path.join(current_directory,'pair','EMD CNN Optimization Data.xlsx')     
-      
-    opt_data_directory=os.path.join(current_directory CNN Optimization Data.xlsx')
+        opt_data_directory=os.path.join(current_directory,'pair','EMD CNN Optimization Data.xlsx') 
     df=pd.DataFrame(for_pdata)
     df.to_excel(opt_data_directory)
 

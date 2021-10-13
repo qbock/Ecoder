@@ -51,7 +51,7 @@ def get_emd_loss(model_number):
      Remapping using array from telescope.py  
   """
     
-    model_path='/ecoderemdvol/best_emd/'+str(model_number)+'.h5'
+    model_path='/ecoderemdvol/best_emd3/'+str(model_number)+'.h5'
     #Change above line if you're running locally to:
     #model_path=os.getcwd()+'/best_emd/'+str(model_number)+'.h5'
     emd_model = tf.keras.models.load_model(model_path)
