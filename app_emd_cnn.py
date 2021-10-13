@@ -58,7 +58,7 @@ class app_EMD_CNN:
             return data_values
         
         #Take data from previous Autoencoder Training
-        csv_directory='/ecoderemdvol/test_ae/8x8_c8_S2_tele'
+        csv_directory='test_ae/8x8_c8_S2_tele'
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_ae_data(input_loc)
@@ -212,8 +212,8 @@ class app_EMD_CNN:
         final_directory=os.path.join(current_directory,r'app_emd_models')
         if not os.path.exists(final_directory):
             os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('/ecoderemdvol/app/app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                        ModelCheckpoint('/ecoderemdvol/app/app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                        ModelCheckpoint('app/app_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
 
         sym_model.compile(optimizer='adam', loss=Loss, metrics=['mse', 'mae', 'mape', 'msle'])
