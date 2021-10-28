@@ -35,7 +35,7 @@ class ae_EMD_CNN:
     X1_train=[]
     X2_train=[]
     
-    def ittrain(num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs):
+    def ittrain(test_ae_directory,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
         
         def load_data(inputFile):
             
@@ -46,8 +46,8 @@ class ae_EMD_CNN:
         
         current_directory=os.getcwd()
         
-        #Take dataset from previous Autoencoder Training
-        csv_directory=os.path.join(current_directory,'test','8x8_c8_S2_tele')
+        #Take dataset PASSED from previous Autoencoder Training
+        csv_directory=os.path.join(test_ae_directory,'8x8_c8_S2_tele')
         input_loc=os.path.join(csv_directory,'verify_input_calQ.csv')
 
         q_input_data=load_data(input_loc)
@@ -166,22 +166,27 @@ class ae_EMD_CNN:
         output = Dense(1, name='output')(x)
         model = Model(inputs=[input1, input2], outputs=output, name='base_model')
         model.summary()
-
-        final_directory=os.path.join(current_directory,r'ae_emd_loss_models')
+        
+        # make a model that enforces the symmetry of the EMD function by averging the outputs for swapped inputs
+        output = Average(name='average')([model((input1, input2)), model((input2, input1))])
+        sym_model = Model(inputs=[input1, input2], outputs=output, name='sym_model')
+        sym_model.summary()
+        
+        final_directory=os.path.join(current_directory,r'ae_emd_models')
         if not os.path.exists(final_directory):
                 os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('ae_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                        ModelCheckpoint('ae_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('ae_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                        ModelCheckpoint('ae_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
 
-        model.compile(optimizer='adam', loss='huber_loss', metrics=['mse', 'mae', 'mape', 'msle'])
-        history = model.fit((X1_train, X2_train), y_train, 
+        sym_model.compile(optimizer='adam', loss=Loss, metrics=['mse', 'mae', 'mape', 'msle'])
+        history = sym_model.fit((X1_train, X2_train), y_train, 
                             validation_data=((X1_val, X2_val), y_val),
                             epochs=num_epochs, verbose=1, batch_size=32, callbacks=callbacks)
         
-                #Making directory for graphs
+        #Making directory for graphs
 
-        img_directory=os.path.join(current_directory,r'Performance on Predicting True ae_EMD Plots')
+        img_directory=os.path.join(current_directory,r'AE EMD Plots')
         if not os.path.exists(img_directory):
             os.makedirs(img_directory)
 
@@ -191,9 +196,9 @@ class ae_EMD_CNN:
         fig=plt.plot(history.history['loss'], label='Train')
         fig=plt.plot(history.history['val_loss'], label='Val.')
         fig=plt.xlabel('Epoch')
-        fig=plt.ylabel('MSLE loss')
+        fig=plt.ylabel(Loss+''+'loss')
         fig=plt.legend()
-        plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Loss.png")
+        plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Loss.png")
         plt.show()
         plt.close()
 
@@ -207,7 +212,7 @@ class ae_EMD_CNN:
         fig=plt.xlabel('EMD [GeV]')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Hist.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Hist.png")
         plt.show()
         plt.close()
 
@@ -220,7 +225,7 @@ class ae_EMD_CNN:
         fig=plt.xlabel('EMD rel. diff.')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"RelD.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"RelD.png")
         plt.show()
         plt.close()
 
@@ -234,7 +239,7 @@ class ae_EMD_CNN:
         plt.plot([0, 15], [0, 15], color='gray', alpha=0.5)
         ax.set_xlabel('True EMD [GeV]')
         ax.set_ylabel('Pred. EMD [GeV]')
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Graphic.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Graphic.png")
         plt.show()
         plt.close()
         

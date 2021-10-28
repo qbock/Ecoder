@@ -36,20 +36,6 @@ arrange443 = np.array([0,16, 32,
                        15,31, 47])
 
 def get_emd_loss(model_number):
-    """
-     model_path: path to EMD model h5 file, saved at /best_emd/1.h5
-     Input comes in in 8x8 looking like this:
-     arrange8x8 = np.array([
-         28,29,30,31,0,4,8,12,
-         24,25,26,27,1,5,9,13,
-         20,21,22,23,2,6,10,14,
-         16,17,18,19,3,7,11,15,
-         47,43,39,35,35,34,33,32,
-         46,42,38,34,39,38,37,36,
-         45,41,37,33,43,42,41,40,
-         44,40,36,32,47,46,45,44])
-     Remapping using array from telescope.py  
-  """
     
     model_path=os.getcwd()+'/best_emd/'+str(model_number)+'.h5'
     emd_model = tf.keras.models.load_model(model_path)

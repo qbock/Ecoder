@@ -27,14 +27,16 @@ from tensorflow.keras.regularizers import l1_l2
         
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-class EMD_CNN:
+from qkeras import *
+
+class pair_EMD_CNN:
     
     X1_train=[]
     X2_train=[]
     
-    def ittrain(self,calQ_data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs):
+    def ittrain(self,calQ_data,num_filt, kernel_size, num_dens_neurons, num_dens_layers, num_conv_2d, num_epochs,Loss):
         
-        current_directory=os.getcwd()
+        current_directory='/ecoderemdvol/q_pair'
         
         #Arranging the hexagon
         arrange443 = np.array([0,16, 32,
@@ -101,9 +103,9 @@ class EMD_CNN:
         #Number of Conv2D Layers
         for i in range(1,num_conv_2d+1):
             ind=str(i)
-            x = Conv2D(num_filt, kernel_size, strides=(1, 1), name='conv2d_'+ind, padding='same', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-            x = BatchNormalization(name='batchnorm_'+ind)(x)
-            x = Activation('relu', name='relu_'+ind)(x)
+            x = QConv2D(num_filt, kernel_size, strides=(1, 1), kernel_quantizer="stochastic_ternary",bias_quantizer="ternary",name='conv2d_'+ind, padding='same', kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
+            x = QBatchNormalization(name='batchnorm_'+ind)(x)
+            x = QActivation('relu', name='relu_'+ind)(x)
                 
         x = Flatten(name='flatten')(x)
             
@@ -111,11 +113,13 @@ class EMD_CNN:
         for i in range(1,num_dens_layers+1):
             ind=str(i)
             jind=str(i+num_conv_2d)
-            x = Dense(num_dens_neurons, name='dense_'+ind, kernel_regularizer=l1_l2(l1=0,l2=1e-4))(x)
-            x = BatchNormalization(name='batchnorm'+jind)(x)
-            x = Activation('relu', name='relu_'+jind)(x)
+            x = QDense(units=num_dens_neurons, kernel_quantizer=quantized_bits(3),bias_quantizer=quantized_bits(3),kernel_regularizer=l1_l2(l1=0,l2=1e-4), name='dense_'+ind)(x)
+            x = QBatchNormalization(name='batchnorm'+jind)(x)
+            x = QActivation('relu', name='relu_'+jind)(x)
+        
+        x = QActivation("quantized_bits(20, 5)")(x)
                 
-        output = Dense(1, name='output')(x)
+        output = QDense(1, name='output')(x)
         model = Model(inputs=[input1, input2], outputs=output, name='base_model')
         model.summary()
                 
@@ -124,21 +128,21 @@ class EMD_CNN:
         sym_model = Model(inputs=[input1, input2], outputs=output, name='sym_model')
         sym_model.summary()
         
-        final_directory=os.path.join(current_directory,r'pair_emd_loss_models')
+        final_directory=os.path.join(current_directory,r'q_pair_emd_models')
         if not os.path.exists(final_directory):
             os.makedirs(final_directory)
-        callbacks = [ModelCheckpoint('pair_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
-                     ModelCheckpoint('pair_emd_loss_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
+        callbacks = [ModelCheckpoint('/ecoderemdvol/q_pair/q_pair_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'best.h5', monitor='val_loss', verbose=1, save_best_only=True),
+                     ModelCheckpoint('/ecoderemdvol/q_pair/q_pair_emd_models/'+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+'last.h5', monitor='val_loss', verbose=1, save_last_only=True),
                     ]
             
-        sym_model.compile(optimizer='adam', loss='huber_loss', metrics=['mse', 'mae', 'mape', 'msle'])
+        sym_model.compile(optimizer='adam', loss=Loss, metrics=['mse', 'mae', 'mape', 'msle'])
         history = sym_model.fit((X1_train, X2_train), y_train, 
                             validation_data=((X1_val, X2_val), y_val),
                             epochs=num_epochs, verbose=1, batch_size=32, callbacks=callbacks)
         
         #Making directory for graphs
         
-        img_directory=os.path.join(current_directory,r'EMD Performance Plots pairwise training')
+        img_directory=os.path.join(current_directory,r'Q Pair EMD Plots')
         if not os.path.exists(img_directory):
             os.makedirs(img_directory)
         
@@ -148,9 +152,9 @@ class EMD_CNN:
         fig=plt.plot(history.history['loss'], label='Train')
         fig=plt.plot(history.history['val_loss'], label='Val.')
         fig=plt.xlabel('Epoch')
-        fig=plt.ylabel('MSLE loss')
+        fig=plt.ylabel(Loss+''+'loss')
         fig=plt.legend()
-        plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Loss.png")
+        plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Loss.png")
         plt.close()
         
         #Plots True EMD and Pred Emd Histogram
@@ -158,12 +162,12 @@ class EMD_CNN:
         plt.close()
         y_val_preds = sym_model.predict((X1_val, X2_val))
         fig=plt.figure()
-        fig=plt.hist(y_val, alpha=0.5, bins=np.arange(0, 15, 0.1), label='True')
-        fig=plt.hist(y_val_preds, alpha=0.5, bins=np.arange(0, 15, 0.1), label='Pred.')
+        fig=plt.hist(y_val, alpha=0.5, bins=np.arange(0, 7.5, 0.01), label='TrueEMD')
+        fig=plt.hist(y_val_preds, alpha=0.5, bins=np.arange(0, 7.5, 0.01), label='EMDCNN')
         fig=plt.xlabel('EMD [GeV]')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Hist.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Hist.png")
         plt.close()
         
         #Plot Relative Difference
@@ -175,20 +179,20 @@ class EMD_CNN:
         fig=plt.xlabel('EMD rel. diff.')
         fig=plt.ylabel('Samples')
         fig=plt.legend()
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"RelD.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"RelD.png")
         plt.close()
         
         #Plot True EMD vs Pred Emd Graphic
         
         plt.close()
         fig, ax = plt.subplots(figsize =(5, 5)) 
-        x_bins = np.arange(0, 15, 0.1)
-        y_bins = np.arange(0, 15, 0.1)
+        x_bins = np.arange(0, 7.5, 0.01)
+        y_bins = np.arange(0, 7.5, 0.01)
         plt.hist2d(y_val.flatten(), y_val_preds.flatten(), bins=[x_bins,y_bins])
         plt.plot([0, 15], [0, 15], color='gray', alpha=0.5)
         ax.set_xlabel('True EMD [GeV]')
         ax.set_ylabel('Pred. EMD [GeV]')
-        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+"Graphic.png")
+        fig=plt.savefig(img_directory+"/"+str(num_filt)+str(kernel_size)+str(num_dens_neurons)+str(num_dens_layers)+str(num_conv_2d)+str(num_epochs)+Loss+"Graphic.png")
         plt.close()
         
         return(np.mean(rel_diff),np.std(rel_diff))
