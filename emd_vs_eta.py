@@ -12,12 +12,16 @@ def plot_eta(input_Q, output_Q, phys):
   phi=[]
   for i in indices:
     phi=np.append(phi,phys[i][0])
-    
-  plt.plot(phi.flatten(),emd_values.flatten())
+  
+  data = np.hstack((phi.flatten(),emd_values.flatten()))
+  data=data.sort(axis=0)
+  plt.plot(data[0],data[1])
   
   plt.xlabel(r'$\eta$')
   plt.ylabel('EMD')
   
   plt.savefig('./EMD_vs_eta.pdf')
+  
+  
     
  
