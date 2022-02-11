@@ -19,7 +19,7 @@ from get_flops import get_flops_from_model
 
 from utils.logger import _logger
 from utils.plot import plot_loss, plot_hist, visualize_displays, plot_profile, overlay_plots
-from utils.emd_v_eta import plot_eta
+from emd_v_eta import plot_eta
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
