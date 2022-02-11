@@ -733,7 +733,7 @@ def main(args):
             np.savetxt("verify_decoded.csv",cnn_deQ[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
             np.savetxt("verify_decoded_calQ.csv",np.hstack((output_calQ_fr[0:N_csv].reshape(N_csv,48),phys_val_input)), delimiter=",",fmt='%.12f')
             
-            plot_eta(input_calQ[0:N_csv].reshape(N_csv,48),output_calQ_fr[0:N_csv].reshape(N_csv,48),phys_val_input)
+            plot_eta(input_calQ[0:N_csv].reshape(N_csv,48), output_calQ_fr[0:N_csv].reshape(N_csv,48), phys_val_input)
 
         _logger.info('Renormalize inputs of AE for comparisons')
         occupancy_0MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48),axis=1)
