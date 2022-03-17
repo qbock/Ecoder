@@ -721,9 +721,9 @@ def main(args):
         input_calQ  = np.array([input_calQ[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order                                
         output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if args.rescaleOutputToMax else val_sum, rescaleOutputToMax=args.rescaleOutputToMax)
 
-        isRTL = True
+        isRTL = False
         if isRTL:
-            _logger.info('Save CVS for RTL verification')
+            _logger.info('Save CSV for RTL verification')
             N_csv= (args.nCSV if args.nCSV>=0 else input_Q.shape[0]) # about 80k                                                                                                                          
             AEvol = m.pams['shape'][0]* m.pams['shape'][1] *  m.pams['shape'][2]
             np.savetxt("verify_input_ae.csv", input_Q[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
