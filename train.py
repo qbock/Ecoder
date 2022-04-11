@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 import json
 import pickle
+import codecs
 import os
 import numba
 import tensorflow as tf
@@ -629,9 +630,11 @@ def main(args):
     perf_dict={}
     
     #Putting back physics columns below once training is done
+    print(f'len phys_values: {len(phys_values)}')
     Nphys = round(len(phys_values)*0.2)
+    print(f'Nphys = {Nphys}')
     phys_val_input = phys_values[:Nphys]
-    phys_val_input=phys_val_input
+    # phys_val_input=phys_val_input
     
     # train each model
     for model in models:
@@ -721,17 +724,26 @@ def main(args):
         input_calQ  = np.array([input_calQ[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order                                
         output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if args.rescaleOutputToMax else val_sum, rescaleOutputToMax=args.rescaleOutputToMax)
 
-        isRTL = False
+        isRTL = True
         if isRTL:
             _logger.info('Save CSV for RTL verification')
             N_csv= (args.nCSV if args.nCSV>=0 else input_Q.shape[0]) # about 80k                                                                                                                          
             AEvol = m.pams['shape'][0]* m.pams['shape'][1] *  m.pams['shape'][2]
             np.savetxt("verify_input_ae.csv", input_Q[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
             np.savetxt("verify_input_ae_abs.csv", input_Q_abs[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
-            np.savetxt("verify_input_calQ.csv", np.hstack((input_calQ[0:N_csv].reshape(N_csv,48),phys_val_input)), delimiter=",",fmt='%.12f')
+           
+            resized_input_calq = input_calQ[0:N_csv].reshape(N_csv,48)
+            resized_output_calq = output_calQ_fr[0:N_csv].reshape(N_csv,48)
+            if phys_val_input.shape[0] > 0: 
+                # NOTE: To hstack, the two inputs must have the same shape along all dimensions except dimension 2, so this is not a robust check
+                np.savetxt("verify_input_calQ.csv", np.hstack((resized_input_calq, phys_val_input)), delimiter=",",fmt='%.12f')
+                np.savetxt("verify_decoded_calQ.csv", np.hstack((resized_output_calq,phys_val_input)), delimiter=",",fmt='%.12f')
+            else:
+                np.savetxt("verify_input_calQ.csv", resized_input_calq, delimiter=",",fmt='%.12f')
+                np.savetxt("verify_decoded_calQ.csv", resized_output_calq, delimiter=",",fmt='%.12f')
+
             np.savetxt("verify_output.csv",cnn_enQ[0:N_csv].reshape(N_csv,m.pams['encoded_dim']), delimiter=",",fmt='%.12f')
             np.savetxt("verify_decoded.csv",cnn_deQ[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
-            np.savetxt("verify_decoded_calQ.csv",np.hstack((output_calQ_fr[0:N_csv].reshape(N_csv,48),phys_val_input)), delimiter=",",fmt='%.12f')
             
             #plot_eta(input_calQ[0:N_csv].reshape(N_csv,48), output_calQ_fr[0:N_csv].reshape(N_csv,48), phys_val_input)
 
@@ -764,6 +776,8 @@ def main(args):
     
     os.chdir(orig_dir)
     
+    # The following plot won't work if phys_val_input is empty,
+    # as there are no physics values to plot
     plot_eta(args.odir,args.models,phys_val_input)
 
 
