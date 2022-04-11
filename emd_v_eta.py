@@ -51,7 +51,8 @@ def plot_eta(current_dir,models,phys):
         nbins=10
         lims=None
         stats=True
-        if lims==None: lims = (x.min(),x.max())
+        #TODO: X is empty "ValueError: min() arg is an empty sequence"
+        if lims==None: lims = (min(x), max(x)) #lims = (x.min(),x.max())
         median_result = scipy.stats.binned_statistic(x, y, bins=nbins, range=lims, statistic=lambda x: np.quantile(x,0.5))
         lo_result     = scipy.stats.binned_statistic(x, y, bins=nbins, range=lims, statistic=lambda x: np.quantile(x,0.5-0.68/2))
         hi_result     = scipy.stats.binned_statistic(x, y, bins=nbins, range=lims, statistic=lambda x: np.quantile(x,0.5+0.68/2))

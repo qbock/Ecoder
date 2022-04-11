@@ -733,11 +733,13 @@ def main(args):
             np.savetxt("verify_input_ae_abs.csv", input_Q_abs[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
            
             resized_input_calq = input_calQ[0:N_csv].reshape(N_csv,48)
-            resized_output_calq = output_calQ_fr[0:N_csv].reshape(N_csv,48)
-            if phys_val_input.shape[0] > 0: 
+            resized_output_calq = output_calQ_fr[0:N_csv].reshape(N_csv,48) 
+            resized_phys_val_input = phys_val_input[0:N_csv].reshape(N_csv,2)
+            
+            if phys_val_input.shape[0] > 0:
                 # NOTE: To hstack, the two inputs must have the same shape along all dimensions except dimension 2, so this is not a robust check
-                np.savetxt("verify_input_calQ.csv", np.hstack((resized_input_calq, phys_val_input)), delimiter=",",fmt='%.12f')
-                np.savetxt("verify_decoded_calQ.csv", np.hstack((resized_output_calq,phys_val_input)), delimiter=",",fmt='%.12f')
+                np.savetxt("verify_input_calQ.csv", np.hstack((resized_input_calq, resized_phys_val_input)), delimiter=",",fmt='%.12f')
+                np.savetxt("verify_decoded_calQ.csv", np.hstack((resized_output_calq, resized_phys_val_input)), delimiter=",",fmt='%.12f')
             else:
                 np.savetxt("verify_input_calQ.csv", resized_input_calq, delimiter=",",fmt='%.12f')
                 np.savetxt("verify_decoded_calQ.csv", resized_output_calq, delimiter=",",fmt='%.12f')
@@ -778,7 +780,8 @@ def main(args):
     
     # The following plot won't work if phys_val_input is empty,
     # as there are no physics values to plot
-    plot_eta(args.odir,args.models,phys_val_input)
+    #TODO: If phys_vals are ever needed, fix line 54 in emd_v_eta.py
+    #plot_eta(args.odir,args.models,phys_val_input)
 
 
 if __name__ == '__main__':
