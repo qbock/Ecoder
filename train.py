@@ -229,15 +229,21 @@ def build_model(args):
              
         # re-use trained weights 
         if m['ws']=="":
-            if os.path.exists(args.odir+m['name']+"/"+m['name']+".hdf5"):
+            saved_model_filename = m['name'] + '.hdf5'
+            trained_weights_path = os.path.join(
+                args.odir, 
+                m['name'], 
+                saved_model_filename
+            )
+            if os.path.exists(trained_weights_path):
                 if args.retrain:
                     _logger.info('Found weights, but going to re-train as told.')
                     m['ws'] = ""
                 else:
-                    _logger.info('Found weights, using it by default')
-                    m['ws'] = m['name']+".hdf5"
+                    _logger.info(f'Found weights, using it by default: {trained_weights_path}')
+                    m['ws'] = saved_model_filename
             else:
-                _logger.info('Have not found trained weights in dir: %s'%(args.odir+m['name']+"/"+m['name']+".hdf5"))
+                _logger.info(f'Have not found trained weights in dir: {trained_weights_path}')
         else:
             _logger.info('Found user input weights, using %s'%m['ws'])
             
@@ -379,6 +385,7 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
         }
 
     model_name = model['name']
+    print(f'Evaluating model: {model_name}')
     plots={}
     summary_by_model = {
         'name':model_name,
@@ -412,6 +419,7 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
         for mname, metric in eval_dict['metrics'].items():
             name = mname+"_"+algname
             vals = np.array([metric(input_calQ[i],alg_out[i]) for i in range(0,len(input_Q_abs))])
+            print(f"Avg Metric: {name} = {np.mean(vals)}")
 
             model[name] = np.round(np.mean(vals), 3)
             model[name+'_err'] = np.round(np.std(vals), 3)
@@ -587,21 +595,21 @@ def main(args):
     # evaluate performance
     from utils.metrics import emd,d_weighted_mean,d_abs_weighted_rms,zero_frac,ssd
     
-    eval_dict={
+    eval_dict = {
         # compare to other algorithms
-        'algnames'    :['ae','stc','thr_lo','thr_hi','bc'],
-        'metrics'     :{'EMD':emd},
-        "occ_nbins"   :12,
-        "occ_range"   :(0,24),
-	"occ_bins"    : [0,2,5,10,15],
-	"chg_nbins"   :20,
-        "chg_range"   :(0,200),
-        "chglog_nbins":20,
-        "chglog_range":(0,2.5),
-        "chg_bins"    :[0,2,5,10,50],
-        "occTitle"    :r"occupancy [1 MIP$_{\mathrm{T}}$ TCs]"       ,
-        "logMaxTitle" :r"log10(Max TC charge/MIP$_{\mathrm{T}}$)",
-	"logTotTitle" :r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
+        'algnames'    : ['ae','stc','thr_lo','thr_hi','bc'],
+        'metrics'     : {'EMD': emd},
+        "occ_nbins"   : 12,
+        "occ_range"   : (0,24),
+	    "occ_bins"    : [0,2,5,10,15],
+	    "chg_nbins"   : 20,
+        "chg_range"   : (0,200),
+        "chglog_nbins": 20,
+        "chglog_range": (0,2.5),
+        "chg_bins"    : [0,2,5,10,50],
+        "occTitle"    : r"occupancy [1 MIP$_{\mathrm{T}}$ TCs]"       ,
+        "logMaxTitle" : r"log10(Max TC charge/MIP$_{\mathrm{T}}$)",
+	    "logTotTitle" : r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
     }
     if args.full:
         eval_dict['metrics'].update({'EMD':emd,
