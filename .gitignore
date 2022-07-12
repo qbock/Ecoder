@@ -4,3 +4,5 @@
 *pycache*
 data
 log*
+comp_all
+.DS_Store

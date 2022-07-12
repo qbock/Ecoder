@@ -113,17 +113,17 @@ def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
     return norm_data
 
 def load_data(args):
-    # charge data headers of 48 Input Trigger Cells (TC) 
+    # charge data headers of 48 Input Trigger Cells (TC)
     CALQ_COLS = ['CALQ_%i'%c for c in range(0, 48)]
-    
+
     #Keep track of phys data
     COORD_COLS=['tc_eta','tc_phi']
-    
+
     def mask_data(data,args):
         # mask rows where occupancy is zero
         mask_occupancy = (data[CALQ_COLS].astype('float64').sum(axis=1) != 0)
         data = data[mask_occupancy]
-        
+
         if args.maskPartials:
             mask_isFullModule = np.isin(data.ModType.values,['FI','FM','FO'])
             _logger.info('Mask partial modules from input dataset')
@@ -135,7 +135,7 @@ def load_data(args):
             except:
                 _logger.warning('No SimEnergyFraction array in input data')
         return data
-    
+
     if os.path.isdir(args.inputFile):
         df_arr = []
         phy_arr=[]
@@ -143,8 +143,8 @@ def load_data(args):
             if os.path.isdir(args.inputFile+infile): continue
             infile = os.path.join(args.inputFile,infile)
             if args.noHeader:
-                df_arr.append(pd.read_csv(infile, dtype=np.float64, header=0, nrows = args.nrowsPerFile, usecols=[*range(0,48)], names=CALQ_COLS))
-                phy_arr.append(pd.read_csv(infile, dtype=np.float64, header=0, nrows = args.nrowsPerFile, usecols=[*range(55,57)], names=COORD_COLS))
+                df_arr.append(pd.read_csv(infile, dtype=np.float64, header=0, nrows = args.nrowsPerFile, usecols=[*range(0,48)], names=CALQ_COLS, encoding = "latin1"))
+                phy_arr.append(pd.read_csv(infile, dtype=np.float64, header=0, nrows = args.nrowsPerFile, usecols=[*range(55,57)], names=COORD_COLS, encoding = "latin1"))
             else:
                 df_arr.append(pd.read_csv(infile, nrows=args.nrowsPerFile))
         data = pd.concat(df_arr)
@@ -198,7 +198,7 @@ def build_model(args):
         models = [n for n in networks_by_name if n['name'] in m_to_run]
     else:
         models = networks_by_name
-        
+
     nBits_encod = dict()
     if(args.nElinks==2):
         nBits_encod  = {'total':  3, 'integer': 1,'keep_negative':0}
@@ -207,14 +207,14 @@ def build_model(args):
     elif(args.nElinks==4):
         nBits_encod  = {'total':  7, 'integer': 1,'keep_negative':0}
     elif(args.nElinks==5):
-        nBits_encod  = {'total':  9, 'integer': 1,'keep_negative':0} # 0 to 2 range, 8 bit decimal 
+        nBits_encod  = {'total':  9, 'integer': 1,'keep_negative':0} # 0 to 2 range, 8 bit decimal
     else:
         _logger.warning('Must specify encoding bits for nElink %i'%args.nElinks)
-        
+
     for m in models:
         if not 'nBits_encod' in m['params'].keys():
             m['params'].update({'nBits_encod':nBits_encod})
-            
+
     nBits_input  = {'total': 10, 'integer': 3, 'keep_negative':1}
     nBits_accum  = {'total': 11, 'integer': 3, 'keep_negative':1}
     nBits_weight = {'total':  5, 'integer': 1, 'keep_negative':1} # sign bit not included
@@ -226,13 +226,13 @@ def build_model(args):
              _logger.info('qKeras model input {total}, {integer}, {keep_negative}'.format(**m['params']['nBits_input']))
              _logger.info('qKeras model accum {total}, {integer}, {keep_negative}'.format(**m['params']['nBits_accum']))
              _logger.info('qKeras model encod {total}, {integer}, {keep_negative}'.format(**m['params']['nBits_encod']))
-             
-        # re-use trained weights 
+
+        # re-use trained weights
         if m['ws']=="":
             saved_model_filename = m['name'] + '.hdf5'
             trained_weights_path = os.path.join(
-                args.odir, 
-                m['name'], 
+                args.odir,
+                m['name'],
                 saved_model_filename
             )
             if os.path.exists(trained_weights_path):
@@ -246,7 +246,7 @@ def build_model(args):
                 _logger.info(f'Have not found trained weights in dir: {trained_weights_path}')
         else:
             _logger.info('Found user input weights, using %s'%m['ws'])
-            
+
         if args.loss:
             m['params']['loss'] = args.loss
 
@@ -294,7 +294,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
 
     def save_models(autoencoder, name, isQK=False):
         from utils import graph
-        
+
         json_string = autoencoder.to_json()
         encoder = autoencoder.get_layer("encoder")
         decoder = autoencoder.get_layer("decoder")
@@ -313,11 +313,11 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
         graph.write_frozen_graph(encoder,'encoder_'+name+'.pb.ascii','./',True)
         graph.write_frozen_graph(decoder,'decoder_'+name+'.pb')
         graph.write_frozen_graph(decoder,'decoder_'+name+'.pb.ascii','./',True)
-        
+
         graph.plot_weights(autoencoder)
         graph.plot_weights(encoder)
         graph.plot_weights(decoder)
-    
+
     save_models(autoencoder,name,isQK)
 
     return history
@@ -351,17 +351,17 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
     occ_nbins = eval_dict['occ_nbins']
     occ_range = eval_dict['occ_range']
     occ_bins = eval_dict['occ_bins']
-    
+
     chg_nbins = eval_dict['chg_nbins']
     chg_range = eval_dict['chg_range']
     chglog_nbins = eval_dict['chglog_nbins']
     chglog_range = eval_dict['chglog_range']
     chg_bins = eval_dict['chg_bins']
-    
+
     occTitle = eval_dict['occTitle']
     logMaxTitle = eval_dict['logMaxTitle']
     logTotTitle = eval_dict['logTotTitle']
-    
+
     longMetric = {'cross_corr':'cross correlation',
                   'SSD':'sum of squared differences',
                   'EMD':'earth movers distance',
@@ -381,7 +381,7 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
             'ae' : ae_out,
             'stc': stc_Q,
             #'bc': bc_Q,
-            #'thr_lo': thr_lo_Q, 
+            #'thr_lo': thr_lo_Q,
         }
 
     model_name = model['name']
@@ -425,7 +425,7 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
             model[name+'_err'] = np.round(np.std(vals), 3)
             summary_by_model[name] = model[name]
             summary_by_model[name+'_err'] = model[name+'_err']
-            
+
             if(not args.skipPlot) and (not('zero_frac' in mname)):
                 plot_hist(vals,"hist_"+name,xtitle=longMetric[mname])
                 plot_hist(vals[vals>-1e-9],"hist_nonzero_"+name,xtitle=longMetric[mname])
@@ -462,7 +462,7 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
                                                 ytitle=longMetric[mname],
                                                 nbins=occ_nbins, lims=occ_range,
                                                 text="{} <= Max Q < {}".format(chg_lo,chg_hi_s,name))
-                    
+
     # overlay different metrics
     for mname in eval_dict['metrics']:
         chgs=[]
@@ -541,7 +541,7 @@ def compare_models(models,perf_dict,eval_dict,args):
         _logger.info('Summary_dict')
         print(model['summary_dict'])
         summary = summary.append(model['summary_dict'], ignore_index=True)
-        
+
     print(summary)
     return
 
@@ -555,7 +555,7 @@ def main(args):
 
     # load data
     data_values,phys_values = load_data(args)
-        
+
     # measure TC occupancy
     occupancy_all = np.count_nonzero(data_values,axis=1) # measure non-zero TCs (should be all)
     occupancy_all_1MT = np.count_nonzero(data_values>35,axis=1) # measure TCs with charge > 35
@@ -576,7 +576,7 @@ def main(args):
             if n==None: b=20
             # weight histogram
             contents, bins, patches = plt.hist(vals, n, range=(a,b))
-            
+
             def _get_bin(x,bins):
                 if x < bins[0]: return 0
                 if x >= bins[-1]: return len(bins)-2
@@ -591,10 +591,10 @@ def main(args):
 
     # build default AE models
     models = build_model(args)
-    
+
     # evaluate performance
     from utils.metrics import emd,d_weighted_mean,d_abs_weighted_rms,zero_frac,ssd
-    
+
     eval_dict = {
         # compare to other algorithms
         'algnames'    : ['ae','stc','thr_lo','thr_hi','bc'],
@@ -633,23 +633,23 @@ def main(args):
                   stats=False,logy=True,nbins=50,lims=[0,2.5])
         plot_hist(np.log10(sumdata.flatten()),"sumQ_all",xtitle=eval_dict['logTotTitle'],ytitle="evts",
                   stats=False,logy=True,nbins=50,lims=[0,2.5])
-        
+
     # performance dictionary
     perf_dict={}
-    
+
     #Putting back physics columns below once training is done
     print(f'len phys_values: {len(phys_values)}')
     Nphys = round(len(phys_values)*0.2)
     print(f'Nphys = {Nphys}')
     phys_val_input = phys_values[:Nphys]
     # phys_val_input=phys_val_input
-    
+
     # train each model
     for model in models:
         model_name = model['name']
         if not os.path.exists(model_name): os.mkdir(model_name)
         os.chdir(model_name)
-        
+
         if model['isQK']:
             _logger.info("Model is a qDenseCNN")
             m = qDenseCNN(weights_f=model['ws'])
@@ -669,11 +669,11 @@ def main(args):
             _logger.info("Eval only")
             val_input = shaped_data
             val_ind = np.array(range(len(shaped_data)))
-            train_input = val_input[:0] #empty with correct shape                                                                                                                                           
+            train_input = val_input[:0] #empty with correct shape
             train_ind = val_ind[:0]
         else:
             val_input, train_input, val_ind, train_ind = split(shaped_data)
-            
+
         m_autoCNN , m_autoCNNen = m.get_models()
         model['m_autoCNN'] = m_autoCNN
         model['m_autoCNNen'] = m_autoCNNen
@@ -719,7 +719,7 @@ def main(args):
         # evaluate model
         _logger.info('Evaluate AutoEncoder, model %s'%model_name)
         input_Q, cnn_deQ, cnn_enQ = m.predict(val_input)
-        
+
         input_calQ  = m.mapToCalQ(input_Q)   # shape = (N,48) in CALQ order
         output_calQ_fr = m.mapToCalQ(cnn_deQ)   # shape = (N,48) in CALQ order
         _logger.info('inputQ shape')
@@ -728,22 +728,22 @@ def main(args):
         print(input_calQ.shape)
 
         _logger.info('Restore normalization')
-        input_Q_abs = np.array([input_Q[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit                              
-        input_calQ  = np.array([input_calQ[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order                                
+        input_Q_abs = np.array([input_Q[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit
+        input_calQ  = np.array([input_calQ[i]*(val_max[i] if args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order
         output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if args.rescaleOutputToMax else val_sum, rescaleOutputToMax=args.rescaleOutputToMax)
 
         isRTL = True
         if isRTL:
             _logger.info('Save CSV for RTL verification')
-            N_csv= (args.nCSV if args.nCSV>=0 else input_Q.shape[0]) # about 80k                                                                                                                          
+            N_csv= (args.nCSV if args.nCSV>=0 else input_Q.shape[0]) # about 80k
             AEvol = m.pams['shape'][0]* m.pams['shape'][1] *  m.pams['shape'][2]
             np.savetxt("verify_input_ae.csv", input_Q[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
             np.savetxt("verify_input_ae_abs.csv", input_Q_abs[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
-           
+
             resized_input_calq = input_calQ[0:N_csv].reshape(N_csv,48)
-            resized_output_calq = output_calQ_fr[0:N_csv].reshape(N_csv,48) 
+            resized_output_calq = output_calQ_fr[0:N_csv].reshape(N_csv,48)
             resized_phys_val_input = phys_val_input[0:N_csv].reshape(N_csv,2)
-            
+
             if phys_val_input.shape[0] > 0:
                 # NOTE: To hstack, the two inputs must have the same shape along all dimensions except dimension 2, so this is not a robust check
                 np.savetxt("verify_input_calQ.csv", np.hstack((resized_input_calq, resized_phys_val_input)), delimiter=",",fmt='%.12f')
@@ -754,7 +754,7 @@ def main(args):
 
             np.savetxt("verify_output.csv",cnn_enQ[0:N_csv].reshape(N_csv,m.pams['encoded_dim']), delimiter=",",fmt='%.12f')
             np.savetxt("verify_decoded.csv",cnn_deQ[0:N_csv].reshape(N_csv,AEvol), delimiter=",",fmt='%.12f')
-            
+
             #plot_eta(input_calQ[0:N_csv].reshape(N_csv,48), output_calQ_fr[0:N_csv].reshape(N_csv,48), phys_val_input)
 
         _logger.info('Renormalize inputs of AE for comparisons')
@@ -762,8 +762,8 @@ def main(args):
         occupancy_1MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48)>1.,axis=1)
 
         charges = {
-            'input_Q'    : input_Q,               
-            'input_Q_abs': input_Q_abs,           
+            'input_Q'    : input_Q,
+            'input_Q_abs': input_Q_abs,
             'input_calQ' : input_calQ,            # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
             'output_calQ': output_calQ,           # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
             'output_calQ_fr': output_calQ_fr,     # shape = (N,48) (in Q fr)   (in CALQ 1-48 order)
@@ -772,20 +772,20 @@ def main(args):
             'val_sum'    : val_sum,
             'val_max'    : val_max,
         }
-        
+
         aux_arrs = {
            'occupancy_1MT':occupancy_1MT
         }
-        
+
         perf_dict[model['label']] , model['summary_dict'] = evaluate_model(model,charges,aux_arrs,eval_dict,args)
 
         os.chdir('../')
 
     # compare the relative performance of each model
     compare_models(models,perf_dict,eval_dict,args)
-    
+
     os.chdir(orig_dir)
-    
+
     # The following plot won't work if phys_val_input is empty,
     # as there are no physics values to plot
     #TODO: If phys_vals are ever needed, fix line 54 in emd_v_eta.py
