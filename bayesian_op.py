@@ -236,10 +236,30 @@ def main(args):
         ax_parameter_constraints.append(f"filters_{i+1} * filters_{i+2} >= filters_{i+2}")
 
     for i in range(args.max_CNN_layers):
-        ax_parameters.append(RangeParameter(name=f"filters_{i+1}", parameter_type=ParameterType.INT, lower=0, upper=64))
-        ax_parameters.append(ChoiceParameter(name=f"kernel_{i+1}", parameter_type=ParameterType.INT, values=[5,3,1], sort_values=True))
-        ax_parameters.append(ChoiceParameter(name=f"pooling_{i+1}", parameter_type=ParameterType.INT, values=[0,1], sort_values=True))
-        ax_parameters.append(RangeParameter(name=f"stride_{i+1}", parameter_type=ParameterType.INT, lower=1, upper=5))
+        # ax_parameters.append(RangeParameter(name=f"filters_{i+1}", parameter_type=ParameterType.INT, lower=0, upper=64))
+        # ax_parameters.append(ChoiceParameter(name=f"kernel_{i+1}", parameter_type=ParameterType.INT, values=[5,3,1], sort_values=True))
+        # ax_parameters.append(ChoiceParameter(name=f"pooling_{i+1}", parameter_type=ParameterType.INT, values=[0,1], sort_values=True))
+        # ax_parameters.append(RangeParameter(name=f"stride_{i+1}", parameter_type=ParameterType.INT, lower=1, upper=5))
+        ax_parameters.append({"name": f"filters_{i+1}",
+                              "type": "range",
+                              "bounds": [0, 64],
+                              "value_type": "int"
+        })
+        ax_parameters.append({"name": f"kernel_{i+1}",
+                              "type": "choice",
+                              "value_type": "int",
+                              "values": [5,3,1]
+        })
+        ax_parameters.append({"name": f"pooling_{i+1}",
+                              "type": "choice",
+                              "value_type": "int",
+                              "values": [0, 1]
+        })
+        ax_parameters.append({"name": f"stride_{i+1}",
+                              "type": "range",
+                              "value_type": "int",
+                              "bounds": [5,1]
+        })
 
         ax_parameter_constraints.append(f"filters_{i+1} * kernel_{i+1} >= kernel_{i+1}")
         ax_parameter_constraints.append(f"filters_{i+1} * pooling_{i+1} >= pooling_{i+1}")
