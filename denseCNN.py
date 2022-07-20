@@ -15,7 +15,7 @@ class MaskLayer(Layer):
         self.arrayMask = np.array([arrMask])
         self.mask = tf.reshape(tf.stack(
                         tf.repeat(self.arrayMask,repeats=[nFilter],axis=0),axis=1),
-                        shape=[-1])      
+                        shape=[-1])
     def call(self, inputs):
         return tf.reshape(tf.boolean_mask(inputs,self.mask,axis=1),
                           shape=(tf.shape(inputs)[0],48*self.nFilter))
@@ -52,7 +52,7 @@ class denseCNN:
         }
 
         self.weights_f =weights_f
-        
+
 
     def setpams(self,in_pams):
         for k,v in in_pams.items():
@@ -62,7 +62,7 @@ class denseCNN:
         order = np.arange(48)
         np.random.shuffle(order)
         return arr[:,order]
-    
+
     def cloneInput(self,input_q,n_copy,occ_low,occ_hi):
         shape = self.pams['shape']
         nonzeroQs = np.count_nonzero(input_q.reshape(len(input_q),48),axis=1)
@@ -75,7 +75,7 @@ class denseCNN:
             clone   = clone.reshape(len(clone),shape[0],shape[1],shape[2])
             input_q = np.concatenate([input_q,clone])
         return input_q
-            
+
     def prepInput(self,normData):
       shape = self.pams['shape']
 
@@ -102,7 +102,7 @@ class denseCNN:
         y_true = K.cast(y_true, y_pred.dtype)
         loss   = K.mean(K.square(y_true - y_pred)*K.maximum(y_pred,y_true),axis=(-1))
         return loss
-            
+
     def init(self,printSummary=True):
         encoded_dim = self.pams['encoded_dim']
 
@@ -159,13 +159,13 @@ class denseCNN:
         x = Reshape((shape[1], shape[2], shape[3]))(x)
 
         for i,n_nodes in enumerate(CNN_layer_nodes):
-            
+
             if CNN_pool[i]:
               if channels_first:
                   x = UpSampling2D((2, 2),data_format='channels_first')(x)
               else:
                   x = UpSampling2D((2, 2))(x)
-            
+
             if channels_first:
               x = Conv2DTranspose(n_nodes, CNN_kernel_size[i], activation='relu', strides=CNN_strides[i],padding=CNN_padding[i],data_format='channels_first')(x)
             else:
@@ -187,7 +187,7 @@ class denseCNN:
         self.autoencoder = Model(inputs, self.decoder(self.encoder(inputs)), name='autoencoder')
         if printSummary:
           self.autoencoder.summary()
-        
+
         self.compileModels()
 
         CNN_layers=''
@@ -204,7 +204,7 @@ class denseCNN:
                 Dense_layers += f'_{n}'
 
         self.name = f'Autoencoded{CNN_layers}{Dense_layers}_Encoded_{encoded_dim}'
-        
+
         if not self.weights_f=='':
             self.autoencoder.load_weights(self.weights_f)
         return
@@ -245,21 +245,21 @@ class denseCNN:
         else:
             if len(arrange[arrMask==1])>len(np.unique(arrange[arrMask==1])):
                 foundDuplicateCharge=True
-    
+
         if foundDuplicateCharge and len(calQMask)==0:
-            raise ValueError("Found duplicated charge arrangement, but did not specify calQmask")  
+            raise ValueError("Found duplicated charge arrangement, but did not specify calQmask")
         if len(calQMask)>0 and np.count_nonzero(calQMask)!=48:
-            raise ValueError("calQmask must indicate 48 calQ ")  
-            
+            raise ValueError("calQmask must indicate 48 calQ ")
+
         for i in range(len(arrange)):
             if len(arrMask)>0 :
                 ## fill hashmap only if arrMask allows it
-                if arrMask[i]==1:   
+                if arrMask[i]==1:
                     if(foundDuplicateCharge):
                         ## fill hashmap only if calQMask allows it
-                        if calQMask[i]==1: hashmap[arrange[i]]=i                    
+                        if calQMask[i]==1: hashmap[arrange[i]]=i
                     else:
-                        hashmap[arrange[i]]=i                    
+                        hashmap[arrange[i]]=i
             else:
                 hashmap[arrange[i]]=i
         ## Always map to 48 calQ orders
@@ -276,13 +276,13 @@ class denseCNN:
                 imgSize =self.pams['shape'][0] *self.pams['shape'][1]* self.pams['shape'][2]
                 x = x.reshape(len(x),imgSize)
                 x[:,self.pams['arrMask']==0]=0 ## apply arrMask
-                return x[:,remap]             ## map to calQ 
+                return x[:,remap]             ## map to calQ
             else:
                 return x.reshape(len(x),48)[:,remap]
         else:
             return x.reshape(len(x),48)
 
-           
+
     def predict(self,x):
         decoded_Q = self.autoencoder.predict(x)
         encoded_Q = self.encoder.predict(x)
@@ -296,7 +296,7 @@ class denseCNN:
 
     ##get params for writing json
     def get_pams(self):
-      jsonpams={}      
+      jsonpams={}
       opt_classes = tuple(opt[1] for opt in inspect.getmembers(tf.keras.optimizers,inspect.isclass))
       for k,v in self.pams.items():
           if type(v)==type(np.array([])):
@@ -307,8 +307,8 @@ class denseCNN:
                 config[hp] = str(v.get_config()[hp])
               jsonpams[k] = config
           elif  type(v)==type(telescopeMSE2):
-              jsonpams[k] =str(v) 
+              jsonpams[k] =str(v)
           else:
-              jsonpams[k] = v 
+              jsonpams[k] = v
       return jsonpams
-  
+

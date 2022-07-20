@@ -779,6 +779,11 @@ def main(args):
 
         perf_dict[model['label']] , model['summary_dict'] = evaluate_model(model,charges,aux_arrs,eval_dict,args)
 
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*")
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*")
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*")
+        print(model['summary_dict']['EMD_ae'])
+        print(model['summary_dict']['EMD_ae_err'])
         os.chdir('../')
 
     # compare the relative performance of each model

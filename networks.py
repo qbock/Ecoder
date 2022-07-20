@@ -155,7 +155,7 @@ networks_by_name = [
          'CNN_strides':[(2,2)],
         },
     },
-    
+
     {'name':'8x8_c8_S2_qK_RTL',
      'label':'8x8_c[8]_S2',
      'arr_key':'8x8',
@@ -168,7 +168,7 @@ networks_by_name = [
          'CNN_strides':[(2,2)],
         },
     },
-    
+
     {'name':'8x8_c8_S2_tele',
      'label':'8x8_c[8]_S2(tele)',
      'arr_key':'8x8',
@@ -180,7 +180,49 @@ networks_by_name = [
          'CNN_strides':[(2,2)],
         },
     },
-         
+
+    {'name':'8x8_c16c8_S2_tele',
+     'label':'8x8_c[16][8]_S2(tele)',
+     'arr_key':'8x8',
+     'params':{
+        'shape':(8,8,1),
+        'loss':telescopeMSE8x8,
+        'CNN_layer_nodes':[16, 8],
+        'CNN_kernel_size':[3, 3],
+        'CNN_strides':[(2,2), (2,2)],
+        'CNN_padding': ['same', 'same'],
+        'CNN_pool': [False, False],
+        },
+    },
+
+    {'name':'8x8_c32c16_S2_tele',
+     'label':'8x8_c[32][16]_S2(tele)',
+     'arr_key':'8x8',
+     'params':{
+        'shape':(8,8,1),
+        'loss':telescopeMSE8x8,
+        'CNN_layer_nodes':[32, 16],
+        'CNN_kernel_size':[3, 3],
+        'CNN_strides':[(2,2), (2,2)],
+        'CNN_padding': ['same', 'same'],
+        'CNN_pool': [False, False],
+        },
+    },
+
+    {'name':'8x8_c0_S2_tele',
+     'label':'8x8_c[32][16]_S2(tele)',
+     'arr_key':'8x8',
+     'params':{
+        'shape':(8,8,1),
+        'loss':telescopeMSE8x8,
+        'CNN_layer_nodes':[],
+        'CNN_kernel_size':[3, 3],
+        'CNN_strides':[(2,2), (2,2)],
+        'CNN_padding': ['same', 'same'],
+        'CNN_pool': [False, False],
+        },
+    },
+
     {'name':'8x8_c8_S2_pair_huber',
          'label':'8x8_c[8]_S2(pair_huber)',
      'arr_key':'8x8',
@@ -293,7 +335,7 @@ networks_by_name = [
 defaults = {'channels_first': False,
             'encoded_dim': 16,
             }
-                
+
 for m in networks_by_name:
     arrange = arrange_dict[m['arr_key']]
     m['params'].update({
@@ -301,7 +343,7 @@ for m in networks_by_name:
         'arrMask': arrange['arrMask'],
         'calQMask': arrange['calQMask'],
     })
-    
+
     if not 'isDense2D' in m.keys(): m.update({'isDense2D':False})
     if not 'isQK' in m.keys(): m.update({'isQK':False})
     if not 'ws' in m.keys(): m.update({'ws':''})
