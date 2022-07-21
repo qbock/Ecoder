@@ -1,3 +1,4 @@
+from xmlrpc.client import boolean
 import numpy as np
 import pandas as pd
 import os
@@ -5,7 +6,7 @@ import os
 from denseCNN import denseCNN
 from utils.logger import _logger
 from telescope import telescopeMSE8x8
-from datetime import datetime
+import datetime
 
 from argparse import ArgumentParser
 from ax.service.ax_client import AxClient
@@ -24,22 +25,66 @@ from ax import (
 
 
 parser = ArgumentParser()
-parser.add_argument('-o',"--odir", type=str, default='/Ax_optimzation', dest="odir",
+
+parser.add_argument('-o',"--odir", type=str, default='Ax_optimzation', dest="odir",
                     help="output directory")
 parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="inputFile",
-            help="input TSG files")
+                    help="input TSG files")
+parser.add_argument("--loss", type=str, default=None, dest="loss",
+                    help="force loss function to use")
 parser.add_argument("--quantize", action='store_true', default=False, dest="quantize",
-            help="quantize the model with qKeras. Default precision is 16,6 for all values.")
+                    help="quantize the model with qKeras. Default precision is 16,6 for all values.")
 parser.add_argument("--epochs", type=int, default = 200, dest="epochs",
-            help="number of epochs to train")
+                    help="number of epochs to train")
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
-            help="n of active transceiver e-links eTX")
+                    help="n of active transceiver e-links eTX")
+
+parser.add_argument("--skipPlot", action='store_true', default=False, dest="skipPlot",
+                    help="skip the plotting step")
+parser.add_argument("--full", action='store_true', default = False,dest="full",
+                    help="run all algorithms and metrics")
+
+parser.add_argument("--quickTrain", action='store_true', default = False,dest="quickTrain",
+                    help="train w only 5k events for testing purposes")
+parser.add_argument("--retrain", action='store_true', default = False,dest="retrain",
+                    help="retrain models even if weights are already present for testing purposes")
+parser.add_argument("--evalOnly", action='store_true', default = False,dest="evalOnly",
+                    help="only evaluate the NN on the input sample, no train")
+
+parser.add_argument("--double", action='store_true', default = False,dest="double",
+                    help="test PU400 by combining PU200 events")
+parser.add_argument("--overrideInput", action='store_true', default = False,dest="overrideInput",
+                    help="disable safety check on inputs")
+parser.add_argument("--nCSV", type=int, default = 1, dest="nCSV",
+                    help="n of validation events to write to csv")
+parser.add_argument("--maxVal", type=int, default = -1, dest="maxVal",
+                    help="clip outputs to maxVal")
+parser.add_argument("--AEonly", type=int, default=1, dest="AEonly",
+                    help="run only AE algo")
+parser.add_argument("--rescaleInputToMax", action='store_true', default=False, dest="rescaleInputToMax",
+                    help="rescale the input images so the maximum deposit is 1. Else normalize")
+parser.add_argument("--rescaleOutputToMax", action='store_true', default=False, dest="rescaleOutputToMax",
+                    help="rescale the output images to match the initial sum of charge")
+parser.add_argument("--nrowsPerFile", type=int, default=500000, dest="nrowsPerFile",
+                    help="load nrowsPerFile in a directory")
+parser.add_argument("--occReweight", action='store_true', default = False,dest="occReweight",
+                    help="train with per-event weight on TC occupancy")
+
+parser.add_argument("--maskPartials", action='store_true', default = False,dest="maskPartials",
+                    help="mask partial modules")
+parser.add_argument("--maskEnergies", action='store_true', default = False,dest="maskEnergies",
+                    help="Mask energy fractions <= 0.05")
+parser.add_argument("--saveEnergy", action='store_true', default = False,dest="saveEnergy",
+                    help="save SimEnergy from input data")
+parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
+                    help="input data has no header")
+
 parser.add_argument('--boEpochs', type=int, default = 30, dest="bayesian_op_epochs",
             help="number of epochs to train within Bayesian Optimization")
 parser.add_argument('--maxLayers', type=int, default = 3, dest="max_CNN_layers",
             help="number of epochs to train within Bayesian Optimization")
 
-def save_plot(plot):
+def save_plot(plot, name):
     data = plot[0]['data']
     lay = plot[0]['layout']
 
@@ -48,7 +93,7 @@ def save_plot(plot):
         "data": data,
         "layout": lay,
     }
-    go.Figure(fig).write_image("test.pdf")
+    go.Figure(fig).write_image(name)
 
 def evaluation(args, model):
     _logger.info(args)
@@ -154,23 +199,19 @@ def evaluation(args, model):
 
     return model['summary_dict']['EMD_ae'], model['summary_dict']['EMD_ae_err']
 
-def build_model(args, parameterization, bo_epoch):
+def build_model(args, parameterization, num_layers):
 
     filters, kernels, poolings, strides, paddings = [], [], [], [], []
 
-    for i in range(3):
-        filter = parameterization.get(f"filters_{i+1}")
-        kernel = parameterization.get(f"kernal_{i+1}")
-        pooling = parameterization.get(f"pooling_{i+1}")
+    for i in range(num_layers):
+        filters.append(parameterization.get(f"filters_{i+1}"))
+        kernels.append(parameterization.get(f"kernel_{i+1}"))
+        poolings.append(parameterization.get(f"pooling_{i+1}"))
         stride = parameterization.get(f"stride_{i+1}")
-        if filters:
-            filters.append(filter)
-            kernels.append(kernel)
-            poolings.append(pooling)
-            strides.append(stride)
-            paddings.append('same')
+        strides.append((stride, stride))
+        paddings.append('same')
 
-    name = f'8x8_c{*filters,}]_k[{*kernels,}]_p[{*poolings,}_s{*strides,}tele'
+    name = f'8x8_c[{*filters,}]_k[{*kernels,}]_p[{*poolings,}]_s{*strides,}tele'
     label = f'8x8_c[{*filters,}]_k[{*kernels,}]_p[{*poolings,}]_s[{*strides,}](tele)'
 
     model = {
@@ -185,7 +226,7 @@ def build_model(args, parameterization, bo_epoch):
                 'CNN_kernel_size':kernels,
                 'CNN_strides':strides,
                 'CNN_padding':paddings,
-                'CNN_pool':pooling
+                'CNN_pool':poolings
              }
     }
 
@@ -208,100 +249,89 @@ def build_model(args, parameterization, bo_epoch):
 
     return model
 
-def bo_evaluation(args, parameterization, bo_epoch):
+def bo_evaluation(args, parameterization, num_layers):
 
-    model = build_model(args, parameterization, bo_epoch)
-    EMD, EMD_error = evaluation(model, args)
+    model = build_model(args, parameterization, num_layers)
+    EMD, EMD_error = evaluation(args, model)
     return {"EMD": EMD, "EMD_error": EMD_error}
 
 def main(args):
 
     ax = AxClient()
 
-    """ Set parameters and value of those parameters to be used in the optimization. There is a
-    parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
-    stride for each CNN layer.
-
-    Constraints to limit the search of parameters only only when that layer exists
-
-    Ex. filters_{i+1} * filters_{i+2} >= filters_{i+2} limits the number of filters for the {i+2}th
-    layer to 0 if the previous {i+1}th layers also has 0 filters (a layer having 0 filters is the
-    same as that layer not existing).
-    """
-
-    # List of parameters and parameter constraints
-    ax_parameters, ax_parameter_constraints = [], []
-
-    for i in range(args.max_CNN_layers - 1):
-        ax_parameter_constraints.append(f"filters_{i+1}*filters_{i+2}) - filters_{i+2} >= 0")
-
-    for i in range(args.max_CNN_layers):
-        ax_parameters.append({"name": f"filters_{i+1}",
-                              "type": "range",
-                              "bounds": [0, 64],
-                              "value_type": "int"
-        })
-        ax_parameters.append({"name": f"kernel_{i+1}",
-                              "type": "choice",
-                              "value_type": "int",
-                              "values": [5,3,1]
-        })
-        ax_parameters.append({"name": f"pooling_{i+1}",
-                              "type": "choice",
-                              "value_type": "int",
-                              "values": [0, 1]
-        })
-        ax_parameters.append({"name": f"stride_{i+1}",
-                              "type": "range",
-                              "value_type": "int",
-                              "bounds": [1,5]
-        })
-
-        ax_parameter_constraints.append(f"(filters_{i+1}*kernel_{i+1}) - kernel_{i+1} >= 0")
-        ax_parameter_constraints.append(f"(filters_{i+1}*pooling_{i+1}) - pooling_{i+1} >= 0")
-        ax_parameter_constraints.append(f"filters_{i+1}*stride_{i+1} - stride_{i+1} >= 0 ")
-
-    print('\n\n')
-    print(ax_parameters)
-    print('\n\n')
-    print(ax_parameter_constraints)
-    print('\n\n')
-
-
-    # Create Ax experiment
-    ax.create_experiment(
-        name="ECON_T Bayesian Optimization",
-        parameters=ax_parameters,
-        objective_name="EMD",
-        minimize=True,
-        parameter_constraints = ax_parameter_constraints
-    )
-
-    # Optimization loop
-    for i in range(args.bayesian_op_epochs):
-        parameterization, idx = ax.get_next_trial()
-        ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, i))
-
-    # Print results and save them to a file
-    trials = ax.get_trails_data_fram().sort_values('trail_index')
-    trials_vs_EMD = ax.get_optimization_trace(objective_optimum=EMD.fmin)
-    trials_vs_EMD_error = ax.get_optimization_trace(objective_optimum=EMD_error.fmin)
-    print(trials)
-
-    now = datetime()
+    # Create directory to store results
+    now = datetime.date.today()
     time = now.strftime("%d-%m-%Y_%H-%M-%S")
-    original_dir = os.curdir
-    new_dir = os.path.join(args.odir, "Experiment_" + time)
-    if not os.path.exists(new_dir):
-        os.mkdir(new_dir)
-    os.chdir(new_dir)
 
+    orig_dir = os.getcwd()
+    if not os.path.exists(args.odir): os.mkdir(args.odir)
+    os.chdir(args.odir)
+    new_dir = "Experiment-" + time
+    if not os.path.exists(new_dir): os.mkdir(new_dir)
+    os.chdir(orig_dir)
 
-    trials.to_csv('trials.csv')
-    save_plot(trials_vs_EMD)
-    save_plot(trials_vs_EMD_error)
+    # Run a seperate experiment for each number of layers
+    for num_layers in range(1, args.max_CNN_layers):
 
-    os.chdir(original_dir)
+        """ Set parameters and value of those parameters to be used in the optimization. There is a
+        parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
+        stride for each CNN layer. """
+
+        ax_parameters = []
+
+        for i in range(num_layers):
+            ax_parameters.append({"name": f"filters_{i+1}",
+                                  "type": "range",
+                                  "bounds": [1, 64],
+                                  "value_type": "int"
+            })
+            ax_parameters.append({"name": f"kernel_{i+1}",
+                                  "type": "choice",
+                                  "is_ordered": True,
+                                  "value_type": "int",
+                                  "values": [1,3,5]
+            })
+            ax_parameters.append({"name": f"pooling_{i+1}",
+                                  "type": "choice",
+                                  "is_ordered": True,
+                                  "value_type": "bool",
+                                  "values": [True, False]
+            })
+            ax_parameters.append({"name": f"stride_{i+1}",
+                                  "type": "range",
+                                  "value_type": "int",
+                                  "bounds": [1,5]
+            })
+
+        print('\n\n')
+        print(ax_parameters)
+        print('\n\n')
+
+        # Create Ax experiment
+        ax.create_experiment(
+            name="ECON_T " + str(num_layers) + "layers",
+            parameters=ax_parameters,
+            objective_name="EMD",
+            minimize=True
+        )
+
+        # Optimization loop
+        for i in range(args.bayesian_op_epochs):
+            parameterization, idx = ax.get_next_trial()
+            ax.complete_trial(trial_index=idx, raw_data=bo_evaluation(args, parameterization, num_layers))
+
+        # Print results and save them to a file
+        os.chdir(new_dir)
+        trials = ax.get_trails_data_fram().sort_values('trail_index')
+        trials_vs_EMD = ax.get_optimization_trace(objective_optimum=EMD.fmin)
+        trials_vs_EMD_error = ax.get_optimization_trace(objective_optimum=EMD_error.fmin)
+        print(trials)
+
+        trials.to_csv('trials_' + str(num_layers) + 'layers.csv')
+        save_plot(trials_vs_EMD, 'trials_vs_EMD_' + str(num_layers) + 'layers.pdf')
+        save_plot(trials_vs_EMD_error, 'trials_vs_EMD_error_' + str(num_layers) + 'layers.pdf')
+
+    os.chdir(orig_dir)
 
 if __name__ == '__main__':
     args = parser.parse_args()

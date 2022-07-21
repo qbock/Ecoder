@@ -223,6 +223,20 @@ networks_by_name = [
         },
     },
 
+    {'name':'test_network',
+     'label':'test_network',
+     'arr_key':'8x8',
+     'params':{
+        'shape':(8,8,1),
+        'loss':telescopeMSE8x8,
+        'CNN_layer_nodes':[46],
+        'CNN_kernel_size':[3],
+        'CNN_strides':[(2,2)],
+        'CNN_padding': ['same'],
+        'CNN_pool': [False],
+        },
+    },
+
     {'name':'8x8_c8_S2_pair_huber',
          'label':'8x8_c[8]_S2(pair_huber)',
      'arr_key':'8x8',
