@@ -323,6 +323,7 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
     return history
 
 def evaluate_model(model,charges,aux_arrs,eval_dict,args):
+    from tensorflow import keras as kr
     # input arrays
     input_Q         = charges['input_Q']
     input_Q_abs     = charges['input_Q_abs']
@@ -659,6 +660,7 @@ def main(args):
         else:
             _logger.info("Model is a denseCNN")
             m = denseCNN(weights_f=model['ws'])
+        print(model['params'])
         m.setpams(model['params'])
         m.init()
 

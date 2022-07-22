@@ -80,24 +80,13 @@ class denseCNN:
       shape = self.pams['shape']
 
       if len(self.pams['arrange'])>0:
-          print("here 1")
           arrange = self.pams['arrange']
           inputdata = normData[:,arrange]
       else:
-          print("here 2")
           inputdata = normData
       if len(self.pams['arrMask'])>0:
-          print("here 3")
           arrMask = self.pams['arrMask']
           inputdata[:,arrMask==0]=0  #zeros out repeated entries
-
-      print("INPUT DATA SHAPE")
-      print(inputdata.shape)
-      print("\nRESHAPED DATA SHAPE\n")
-      print(len(inputdata))
-      print(shape[0])
-      print(shape[1])
-      print(shape[2])
 
       shaped_data = inputdata.reshape(len(inputdata),shape[0],shape[1],shape[2])
 

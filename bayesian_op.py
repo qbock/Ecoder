@@ -6,6 +6,7 @@ import os
 from denseCNN import denseCNN
 from utils.logger import _logger
 from telescope import telescopeMSE8x8
+from networks import arrange_dict
 import datetime
 
 from argparse import ArgumentParser
@@ -139,6 +140,7 @@ def evaluation(args, model):
     # train the model
     _logger.info("Model is a denseCNN")
     m = denseCNN()
+    print(model['params'])
     m.setpams(model['params'])
     m.init()
 
@@ -230,6 +232,24 @@ def build_model(args, parameterization, num_layers):
              }
     }
 
+    defaults = {'channels_first': False,
+            'encoded_dim': 16,
+            }
+
+    arrange = arrange_dict[model['arr_key']]
+    model['params'].update({
+        'arrange': arrange['arrange'],
+        'arrMask': arrange['arrMask'],
+        'calQMask': arrange['calQMask'],
+    })
+
+    if not 'isDense2D' in model.keys(): model.update({'isDense2D':False})
+    if not 'isQK' in model.keys(): model.update({'isQK':False})
+    if not 'ws' in model.keys(): model.update({'ws':''})
+    for p,v in defaults.items():
+        if not p in model['params'].keys():
+            model['params'].update({p:v})
+
     nBits_encod = dict()
     if(args.nElinks==2):
         nBits_encod  = {'total':  3, 'integer': 1,'keep_negative':0}
@@ -242,7 +262,8 @@ def build_model(args, parameterization, num_layers):
     else:
         _logger.warning('Must specify encoding bits for nElink %i'%args.nElinks)
 
-    model['params'].update({'nBits_encod':nBits_encod})
+    if not 'nBits_encod' in model['params'].keys():
+        model['params'].update({'nBits_encod':nBits_encod})
 
     if args.loss:
         model['params']['loss'] = args.loss
@@ -302,10 +323,6 @@ def main(args):
                                   "value_type": "int",
                                   "bounds": [1,5]
             })
-
-        print('\n\n')
-        print(ax_parameters)
-        print('\n\n')
 
         # Create Ax experiment
         ax.create_experiment(
