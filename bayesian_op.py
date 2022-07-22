@@ -7,7 +7,7 @@ from denseCNN import denseCNN
 from utils.logger import _logger
 from telescope import telescopeMSE8x8
 from networks import arrange_dict
-import datetime
+from datetime import datetime
 
 from argparse import ArgumentParser
 from ax.service.ax_client import AxClient
@@ -17,13 +17,6 @@ from train import ( normalize,
                     split,
                     train,
                     evaluate_model)
-
-from ax import (
-    ParameterType,
-    RangeParameter,
-    ChoiceParameter
-)
-
 
 parser = ArgumentParser()
 
@@ -80,6 +73,8 @@ parser.add_argument("--saveEnergy", action='store_true', default = False,dest="s
 parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
                     help="input data has no header")
 
+parser.add_argument('--opt_iter', type=int, default = 20, dest="opt_iter",
+            help="number of iterations to use in the Bayesian Optimization loop")
 parser.add_argument('--boEpochs', type=int, default = 30, dest="bayesian_op_epochs",
             help="number of epochs to train within Bayesian Optimization")
 parser.add_argument('--maxLayers', type=int, default = 3, dest="max_CNN_layers",
@@ -116,15 +111,15 @@ def evaluation(args, model):
         'metrics'     : {'EMD': emd},
         "occ_nbins"   : 12,
         "occ_range"   : (0,24),
-	    "occ_bins"    : [0,2,5,10,15],
-	    "chg_nbins"   : 20,
+        "occ_bins"    : [0,2,5,10,15],
+        "chg_nbins"   : 20,
         "chg_range"   : (0,200),
         "chglog_nbins": 20,
         "chglog_range": (0,2.5),
         "chg_bins"    : [0,2,5,10,50],
         "occTitle"    : r"occupancy [1 MIP$_{\mathrm{T}}$ TCs]"       ,
         "logMaxTitle" : r"log10(Max TC charge/MIP$_{\mathrm{T}}$)",
-	    "logTotTitle" : r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
+        "logTotTitle" : r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
     }
 
     # performance dictionary
@@ -140,7 +135,6 @@ def evaluation(args, model):
     # train the model
     _logger.info("Model is a denseCNN")
     m = denseCNN()
-    print(model['params'])
     m.setpams(model['params'])
     m.init()
 
@@ -158,7 +152,7 @@ def evaluation(args, model):
     history = train(m_autoCNN,m_autoCNNen,
                     train_input,train_input,val_input,
                     name=model['name'],
-                    n_epochs = args.epochs,
+                    n_epochs = args.bayesian_op_epochs,
                     )
 
     # evaluate model
@@ -220,7 +214,7 @@ def build_model(args, parameterization, num_layers):
             'name':name,
             'label':label,
             'arr_key':'8x8',
-            'isQK':True,
+            'isQK':False,
             'params':{
                 'shape':(8,8,1),
                 'loss':telescopeMSE8x8,
@@ -281,7 +275,7 @@ def main(args):
     ax = AxClient()
 
     # Create directory to store results
-    now = datetime.date.today()
+    now = datetime.now()
     time = now.strftime("%d-%m-%Y_%H-%M-%S")
 
     orig_dir = os.getcwd()
@@ -333,7 +327,7 @@ def main(args):
         )
 
         # Optimization loop
-        for i in range(args.bayesian_op_epochs):
+        for i in range(args.opt_iter):
             parameterization, idx = ax.get_next_trial()
             ax.complete_trial(trial_index=idx, raw_data=bo_evaluation(args, parameterization, num_layers))
 
