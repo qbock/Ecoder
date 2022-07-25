@@ -33,7 +33,7 @@ parser.add_argument("--epochs", type=int, default = 200, dest="epochs",
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
                     help="n of active transceiver e-links eTX")
 
-parser.add_argument("--skipPlot", action='store_true', default=False, dest="skipPlot",
+parser.add_argument("--skipPlot", action='store_true', default=True, dest="skipPlot",
                     help="skip the plotting step")
 parser.add_argument("--full", action='store_true', default = False,dest="full",
                     help="run all algorithms and metrics")
@@ -132,6 +132,18 @@ def evaluation(args, model):
     phys_val_input = phys_values[:Nphys]
     # phys_val_input=phys_val_input
 
+    # Create directory to store results
+    now = datetime.now()
+    time = now.strftime("%d-%m-%Y_%H-%M-%S")
+    file_name = "Experiment-" + time
+
+    orig_dir = os.getcwd()
+    if not os.path.exists(args.odir): os.mkdir(args.odir)
+    os.chdir(args.odir)
+
+    if not os.path.exists(file_name): os.mkdir(file_name)
+    os.chdir(file_name)
+
     # train the model
     _logger.info("Model is a denseCNN")
     m = denseCNN()
@@ -192,6 +204,8 @@ def evaluation(args, model):
     }
 
     perf_dict[model['label']] , model['summary_dict'] = evaluate_model(model,charges,aux_arrs,eval_dict,args)
+
+    os.chdir(orig_dir)
 
     return model['summary_dict']['EMD_ae'], model['summary_dict']['EMD_ae_err']
 
@@ -274,17 +288,6 @@ def main(args):
 
     ax = AxClient()
 
-    # Create directory to store results
-    now = datetime.now()
-    time = now.strftime("%d-%m-%Y_%H-%M-%S")
-
-    orig_dir = os.getcwd()
-    if not os.path.exists(args.odir): os.mkdir(args.odir)
-    os.chdir(args.odir)
-    new_dir = "Experiment-" + time
-    if not os.path.exists(new_dir): os.mkdir(new_dir)
-    os.chdir(orig_dir)
-
     # Run a seperate experiment for each number of layers
     for num_layers in range(1, args.max_CNN_layers):
 
@@ -313,9 +316,10 @@ def main(args):
                                   "values": [True, False]
             })
             ax_parameters.append({"name": f"stride_{i+1}",
-                                  "type": "range",
+                                  "type": "choice",
+                                  "is_ordered": True,
                                   "value_type": "int",
-                                  "bounds": [1,5]
+                                  "values": [1,2,4]
             })
 
         # Create Ax experiment
@@ -332,7 +336,6 @@ def main(args):
             ax.complete_trial(trial_index=idx, raw_data=bo_evaluation(args, parameterization, num_layers))
 
         # Print results and save them to a file
-        os.chdir(new_dir)
         trials = ax.get_trails_data_fram().sort_values('trail_index')
         trials_vs_EMD = ax.get_optimization_trace(objective_optimum=EMD.fmin)
         trials_vs_EMD_error = ax.get_optimization_trace(objective_optimum=EMD_error.fmin)
@@ -341,8 +344,6 @@ def main(args):
         trials.to_csv('trials_' + str(num_layers) + 'layers.csv')
         save_plot(trials_vs_EMD, 'trials_vs_EMD_' + str(num_layers) + 'layers.pdf')
         save_plot(trials_vs_EMD_error, 'trials_vs_EMD_error_' + str(num_layers) + 'layers.pdf')
-
-    os.chdir(orig_dir)
 
 if __name__ == '__main__':
     args = parser.parse_args()

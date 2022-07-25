@@ -660,7 +660,6 @@ def main(args):
         else:
             _logger.info("Model is a denseCNN")
             m = denseCNN(weights_f=model['ws'])
-        print(model['params'])
         m.setpams(model['params'])
         m.init()
 

@@ -16,7 +16,7 @@ to derive the weights, we first ask how many 2x2 cells each TC enters and get va
 2 4 4 3 | #     ^
 2 4 4 4 | #     |
 2 4 4 4 | # <-- these edges
-1 2 2 2 | #     are associated 
+1 2 2 2 | #     are associated
 
 e.g. the very top left TC only enters one 2x2 tower (as top left TC)
 while the one next to it can be the top left or top right TC of a 2x2 supercell
@@ -38,16 +38,16 @@ from tensorflow.keras import backend as K
 SCmask_48_36 = np.array([
     [ 0,  1,  4,  5, 0.25*1.5], # 2x2 supercells that perfectly tile the sensor
     [ 2,  3,  6,  7, 0.25*1.+1./12], #4 TC indices for 1 supercell (+) weight
-    [ 8,  9, 12, 13, 0.25*2.25], 
-    [10, 11, 14, 15, 0.25*1.5], 
-    [16, 17, 20, 21, 0.25*1.5], 
-    [18, 19, 22, 23, 0.25*1.+1./12], 
-    [24, 25, 28, 29, 0.25*2.25], 
-    [26, 27, 30, 31, 0.25*1.5], 
-    [32, 33, 36, 37, 0.25*1.5], 
-    [34, 35, 38, 39, 0.25*1.+1./12], 
-    [40, 41, 44, 45, 0.25*2.25], 
-    [42, 43, 46, 47, 0.25*1.5], 
+    [ 8,  9, 12, 13, 0.25*2.25],
+    [10, 11, 14, 15, 0.25*1.5],
+    [16, 17, 20, 21, 0.25*1.5],
+    [18, 19, 22, 23, 0.25*1.+1./12],
+    [24, 25, 28, 29, 0.25*2.25],
+    [26, 27, 30, 31, 0.25*1.5],
+    [32, 33, 36, 37, 0.25*1.5],
+    [34, 35, 38, 39, 0.25*1.+1./12],
+    [40, 41, 44, 45, 0.25*2.25],
+    [42, 43, 46, 47, 0.25*1.5],
     [ 4,  5,  8,  9, 0.25*1.5], # shift right by one TC (2/2x2)
     [ 6,  7, 10, 11, 0.25*1.],
     [20, 21, 24, 25, 0.25*1.5],
@@ -74,7 +74,7 @@ SCmask_48_36 = np.array([
     [18, 19, 39, 35, 0.25*1.+1./6],
 ])
 Remap_48_36 = np.zeros((48,36))
-for isc,sc in enumerate(SCmask_48_36): 
+for isc,sc in enumerate(SCmask_48_36):
     for tc in sc[:4]:
         Remap_48_36[int(tc),isc]=1
 tf_Remap_48_36 = tf.constant(Remap_48_36,dtype=tf.float32)
@@ -98,7 +98,7 @@ SCmask_48_12 = np.array([
     [42, 43, 46, 47],
 ])
 Remap_48_12 = np.zeros((48,12))
-for isc,sc in enumerate(SCmask_48_12): 
+for isc,sc in enumerate(SCmask_48_12):
     for tc in sc:
         Remap_48_12[int(tc),isc]=1
 tf_Remap_48_12 = tf.constant(Remap_48_12,dtype=tf.float32)
@@ -120,7 +120,7 @@ def telescopeMSE2(y_true, y_pred):
     y_true_36 = tf.matmul(y_true_rs, tf_Remap_48_36)
     # lossTC2 = K.mean(K.square(y_true_12 - y_pred_12), axis=(-1))
     lossTC2 = K.mean(K.square(y_true_36 - y_pred_36) * K.maximum(y_pred_36, y_true_36) * tf_Weights_48_36, axis=(-1))
-  
+
     # map 2x2 supercells to 4x4 supercells and compute MSE
     y_pred_12 = tf.matmul(y_pred_rs, tf_Remap_48_12)
     y_true_12 = tf.matmul(y_true_rs, tf_Remap_48_12)
@@ -135,34 +135,34 @@ def telescopeMSE2(y_true, y_pred):
 
 
 
-remap_443 = np.array([ 0,  3, 6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45,  
-                       1,  4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46,  
+remap_443 = np.array([ 0,  3, 6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45,
+                       1,  4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46,
                        2,  5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47])
 remap_443_matrix = np.zeros(48*48,dtype=np.float32).reshape((48,48))
-for i in range(48): 
+for i in range(48):
     remap_443_matrix[remap_443[i],i] = 1
 
 def telescopeMSE443(y_true,y_pred):
     return telescopeMSE2(tf.matmul(K.reshape(y_true,(-1,48)),remap_443_matrix),
                          tf.matmul(K.reshape(y_pred,(-1,48)),remap_443_matrix))
 
-remap_663 = np.array([ 25, 26, 27,  28, 19, 20, 21, 22, 13, 14, 15, 16,  7,  8,  9, 10, 
-                       61, 62, 63,  64, 55, 56, 57, 58, 49, 50, 51, 52, 43, 44, 45, 46, 
+remap_663 = np.array([ 25, 26, 27,  28, 19, 20, 21, 22, 13, 14, 15, 16,  7,  8,  9, 10,
+                       61, 62, 63,  64, 55, 56, 57, 58, 49, 50, 51, 52, 43, 44, 45, 46,
                        97, 98, 99, 100, 91, 92, 93, 94, 85, 86, 87, 88, 79, 80, 81, 82])
 remap_663_matrix = np.zeros(48*108,dtype=np.float32).reshape((108,48))
-for i in range(48): 
+for i in range(48):
     remap_663_matrix[remap_663[i],i] = 1
 
 def telescopeMSE663(y_true,y_pred):
     return telescopeMSE2(tf.matmul(K.reshape(y_true,(-1,108)),remap_663_matrix),
                          tf.matmul(K.reshape(y_pred,(-1,108)),remap_663_matrix))
 
-remap_8x8 = [ 4, 12, 20, 28,  5, 13, 21, 29,  6, 14, 22, 30,  7, 15, 23, 31, 
-              24, 25, 26, 27, 16, 17, 18, 19,  8,  9, 10, 11,  0,  1,  2,  3, 
+remap_8x8 = [ 4, 12, 20, 28,  5, 13, 21, 29,  6, 14, 22, 30,  7, 15, 23, 31,
+              24, 25, 26, 27, 16, 17, 18, 19,  8,  9, 10, 11,  0,  1,  2,  3,
               59, 51, 43, 35, 58, 50, 42, 34, 57, 49, 41, 33, 56, 48, 40, 32]
 remap_8x8_matrix = np.zeros(48*64,dtype=np.float32).reshape((64,48))
 
-for i in range(48): 
+for i in range(48):
     remap_8x8_matrix[remap_8x8[i],i] = 1
 
 def telescopeMSE8x8(y_true,y_pred):
