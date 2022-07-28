@@ -141,6 +141,7 @@ class denseCNN:
         for n_nodes in Dense_layer_nodes:
             x = Dense(n_nodes,activation='relu')(x)
 
+        print("ENCOEDDDD DIM:::::: " + str(encoded_dim))
         encodedLayer = Dense(encoded_dim, activation=self.pams['activation'],name='encoded_vector')(x)
 
         # Instantiate Encoder Model
