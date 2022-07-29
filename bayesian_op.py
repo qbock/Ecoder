@@ -138,7 +138,7 @@ def train_eval(args, model, epochs):
     # phys_val_input=phys_val_input
 
     orig_dir = os.getcwd()
-    if not os.path.exists(args.odir): os.mkdir(args.odir)
+    # if not os.path.exists(args.odir): os.mkdir(args.odir)
     os.chdir(args.odir)
 
     if not os.path.exists(model['name']): os.mkdir(model['name'])
@@ -210,7 +210,7 @@ def train_eval(args, model, epochs):
 
     metrics = {"EMD": EMD, "EMD_error": EMD_error}
     # Write EMD, and EMD error statistics to file
-    with open('metrics.json') as file:
+    with open('metrics.json', 'w') as file:
         json.dump(metrics, file)
 
     os.chdir(orig_dir)
@@ -246,15 +246,14 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
         # the orginal 8x8 dimension
 
         reduction_factor /= stride
+        if pooling:
+            reduction_factor /= 2
+
         if reduction_factor * 8 >= 1:
             filters.append(num_filter)
             kernels.append(kernal_size)
             strides.append((stride, stride))
             paddings.append('same')
-
-        if pooling:
-            reduction_factor /= 2
-        if reduction_factor * 8 >= 1:
             poolings.append(pooling)
 
         names[0] = names[0] + f"c{num_filter}"
@@ -286,7 +285,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
 
     # Check name to see if model has been trained already
     for filename in os.listdir(args.odir):
-        if filename == model.name:
+        if filename == name:
             metric_dir = os.path.join(args.odir, "metrics.txt")
             metrics = {}
             with open(metric_dir, 'r') as file:
@@ -365,6 +364,7 @@ def main(args):
     time = now.strftime("%d-%m-%Y--%H-%M-%S")
     file_name = "Experiment-" + time
     args.odir = os.path.join(args.odir, file_name)
+    os.makedirs(args.odir)
 
     # Run a seperate experiment for each number of layers CNN layers and Dense layers
 
