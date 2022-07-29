@@ -370,46 +370,44 @@ def main(args):
 
     ax = AxClient()
 
+    """ Set parameters and value of those parameters to be used in the optimization. There is a
+        parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
+        stride for each CNN layer. """
+
     ax_parameters = []
 
+    for cnn_layers in range(1, args.max_CNN_layers):
+
+        ax_parameters.append({"name": f"filters_{cnn_layers}",
+                            "type": "range",
+                            "bounds": [0, 64],
+                            "value_type": "int"
+        })
+        ax_parameters.append({"name": f"kernel_{cnn_layers}",
+                            "type": "choice",
+                            "is_ordered": True,
+                            "value_type": "int",
+                            "values": [1,3,5]
+        })
+        ax_parameters.append({"name": f"pooling_{cnn_layers}",
+                            "type": "choice",
+                            "is_ordered": True,
+                            "value_type": "bool",
+                            "values": [True, False]
+        })
+        ax_parameters.append({"name": f"stride_{cnn_layers}",
+                            "type": "choice",
+                            "is_ordered": True,
+                            "value_type": "int",
+                            "values": [1,2,4]
+        })
+
     for dense_layers in range(1, args.max_Dense_Layers):
-        for cnn_layers in range(1, args.max_CNN_layers):
-
-            """ Set parameters and value of those parameters to be used in the optimization. There is a
-            parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
-            stride for each CNN layer. """
-
-            for i in range(cnn_layers):
-                ax_parameters.append({"name": f"filters_{i+1}",
-                                    "type": "range",
-                                    "bounds": [0, 64],
-                                    "value_type": "int"
-                })
-                ax_parameters.append({"name": f"kernel_{i+1}",
-                                    "type": "choice",
-                                    "is_ordered": True,
-                                    "value_type": "int",
-                                    "values": [1,3,5]
-                })
-                ax_parameters.append({"name": f"pooling_{i+1}",
-                                    "type": "choice",
-                                    "is_ordered": True,
-                                    "value_type": "bool",
-                                    "values": [True, False]
-                })
-                ax_parameters.append({"name": f"stride_{i+1}",
-                                    "type": "choice",
-                                    "is_ordered": True,
-                                    "value_type": "int",
-                                    "values": [1,2,4]
-                })
-
-            for i in range(dense_layers):
-                ax_parameters.append({"name": f"units_{i+1}",
-                                    "type": "range",
-                                    "bounds": [15, 64],
-                                    "value_type": "int"
-                })
+        ax_parameters.append({"name": f"units_{dense_layers}",
+                            "type": "range",
+                            "bounds": [15, 64],
+                            "value_type": "int"
+        })
 
 
     # Create Ax experiment
