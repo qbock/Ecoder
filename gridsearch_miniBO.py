@@ -3,7 +3,6 @@ from xmlrpc.client import boolean
 import numpy as np
 import pandas as pd
 import os
-import json
 
 from denseCNN import denseCNN
 from utils.logger import _logger
@@ -138,7 +137,7 @@ def train_eval(args, model, epochs):
     # phys_val_input=phys_val_input
 
     orig_dir = os.getcwd()
-    if not os.path.exists(args.odir): os.mkdir(args.odir)
+    if not os.path.exists(args.odir): os.makedirs(args.odir)
     os.chdir(args.odir)
 
     if not os.path.exists(model['name']): os.mkdir(model['name'])
@@ -205,21 +204,12 @@ def train_eval(args, model, epochs):
 
     perf_dict[model['label']] , model['summary_dict'] = evaluate_model(model,charges,aux_arrs,eval_dict,args)
 
-    EMD = model['summary_dict']['EMD_ae']
-    EMD_error = model['summary_dict']['EMD_ae_err']
-
-    metrics = {"EMD": EMD, "EMD_error": EMD_error}
-    # Write EMD, and EMD error statistics to file
-    with open('metrics.json') as file:
-        json.dump(metrics, file)
-
     os.chdir(orig_dir)
 
-    return metrics
+    return model['summary_dict']['EMD_ae'], model['summary_dict']['EMD_ae_err']
 
 def build_model(args, parameterization, cnn_layers, dense_layers):
 
-    # Create lists of parameters and a name and label for the model
     filters, kernels, poolings, strides, paddings, units = [], [], [], [], [], []
 
     names = [''] * 5
@@ -228,34 +218,17 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
         for i in range(4):
             names[i], labels[i] = '_', '_'
 
-    reduction_factor = 1
-
     for i in range(cnn_layers):
         num_filter = parameterization.get(f"filters_{i+1}")
         kernal_size = parameterization.get(f"kernel_{i+1}")
         pooling = parameterization.get(f"pooling_{i+1}")
         stride = parameterization.get(f"stride_{i+1}")
 
-        # If the number of filters is 0, then don't pay attention to the rest of the
-        # parameterization for subsequent layers and only construct model current parameters
-        if not num_filter:
-            break
-
-        # Ensure that reduction of size through pooling and stride doesn't go past 1x1 to avoid
-        # problem where there is no reduction in the encoder past 1x1 but the decoder upsamples past
-        # the orginal 8x8 dimension
-
-        reduction_factor /= stride
-        if reduction_factor * 8 >= 1:
-            filters.append(num_filter)
-            kernels.append(kernal_size)
-            strides.append((stride, stride))
-            paddings.append('same')
-
-        if pooling:
-            reduction_factor /= 2
-        if reduction_factor * 8 >= 1:
-            poolings.append(pooling)
+        filters.append(num_filter)
+        kernels.append(kernal_size)
+        poolings.append(pooling)
+        strides.append((stride, stride))
+        paddings.append('same')
 
         names[0] = names[0] + f"c{num_filter}"
         names[1] = names[1] + f"k{kernal_size}"
@@ -272,10 +245,6 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
     for i in range(dense_layers):
         num_units = parameterization.get(f"units_{i+1}")
 
-        # don't include rest of dense layers if current layer doesn't exist
-        if num_units < 16:
-            break
-
         units.append(num_units)
 
         names[4] = names[4] + f"c{num_units}"
@@ -283,16 +252,6 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
 
     name = f'8x8{names[0]}{names[1]}{names[2]}{names[3]}{names[4]}tele'
     label = f'8x8{labels[0]}{labels[1]}{labels[2]}{labels[3]}{labels[4]}(tele)'
-
-    # Check name to see if model has been trained already
-    for filename in os.listdir(args.odir):
-        if filename == model.name:
-            metric_dir = os.path.join(args.odir, "metrics.txt")
-            metrics = {}
-            with open(metric_dir, 'r') as file:
-                metrics = json.load(file)
-
-            return True, metrics
 
     model = {
             'name':name,
@@ -347,16 +306,13 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
     if args.loss:
         model['params']['loss'] = args.loss
 
-    return False, model
+    return model
 
 def evaluation(args, parameterization, cnn_layers, dense_layers):
 
-    is_trained, model = build_model(args, parameterization, cnn_layers, dense_layers)
-    if is_trained:
-        _logger.info("Current model has been explored, returning previous metrics")
-        return model
-    metrics = train_eval(args, model, args.bayesian_op_epochs)
-    return metrics
+    model = build_model(args, parameterization, cnn_layers, dense_layers)
+    EMD, EMD_error = train_eval(args, model, args.bayesian_op_epochs)
+    return {"EMD": EMD, "EMD_error": EMD_error}
 
 def main(args):
 
@@ -368,21 +324,21 @@ def main(args):
 
     # Run a seperate experiment for each number of layers CNN layers and Dense layers
 
-    ax = AxClient()
+    for dense_layers in range(2, args.max_Dense_Layers):
+        for cnn_layers in range(2, args.max_CNN_layers):
 
-    ax_parameters = []
-
-    for dense_layers in range(1, args.max_Dense_Layers):
-        for cnn_layers in range(1, args.max_CNN_layers):
+            ax = AxClient()
 
             """ Set parameters and value of those parameters to be used in the optimization. There is a
             parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
             stride for each CNN layer. """
 
+            ax_parameters = []
+
             for i in range(cnn_layers):
                 ax_parameters.append({"name": f"filters_{i+1}",
                                     "type": "range",
-                                    "bounds": [0, 64],
+                                    "bounds": [1, 64],
                                     "value_type": "int"
                 })
                 ax_parameters.append({"name": f"kernel_{i+1}",
@@ -407,31 +363,29 @@ def main(args):
             for i in range(dense_layers):
                 ax_parameters.append({"name": f"units_{i+1}",
                                     "type": "range",
-                                    "bounds": [15, 64],
+                                    "bounds": [16, 64],
                                     "value_type": "int"
                 })
 
+            print("CREATING EXPERIMENT: " + f"ECON-T_c{cnn_layers}d{dense_layers}")
+            # Create Ax experiment
+            ax.create_experiment(
+                name=f"ECON-T_c{cnn_layers}d{dense_layers}",
+                parameters=ax_parameters,
+                objective_name="EMD",
+                minimize=True
+            )
 
-    # Create Ax experiment
-    ax.create_experiment(
-        name=f"ECON-T_c{cnn_layers}d{dense_layers}",
-        parameters=ax_parameters,
-        objective_name="EMD",
-        minimize=True
-    )
 
-    # Optimization loop
-    for i in range(args.opt_trials):
-        parameterization, idx = ax.get_next_trial()
-        ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, cnn_layers, dense_layers))
-        print(ax.get_trials_data_frame())
-
-    og_dir = os.getcwd()
-    os.chdir(args.odir)
-    df = ax.get_trials_data_frame()
-    df.to_csv(f'Trials.csv', index=False)
-    os.chdir(og_dir)
-
+            # Optimization loop
+            for i in range(args.opt_trials):
+                parameterization, idx = ax.get_next_trial()
+                ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, cnn_layers, dense_layers))
+                og_dir = os.getcwd()
+                os.chdir(args.odir)
+                df = ax.get_trials_data_frame()
+                df.to_csv(f'Trials_{i}.csv', index=False)
+                os.chdir(og_dir)
 
 if __name__ == '__main__':
     args = parser.parse_args()
