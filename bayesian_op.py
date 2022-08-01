@@ -251,10 +251,10 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
 
         if reduction_factor * 8 >= 1:
             filters.append(num_filter)
-            kernels.append(kernal_size)
             strides.append((stride, stride))
-            paddings.append('same')
             poolings.append(pooling)
+        kernels.append(kernal_size)
+        paddings.append('same')
 
         names[0] = names[0] + f"c{num_filter}"
         names[1] = names[1] + f"k{kernal_size}"
