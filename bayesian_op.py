@@ -236,6 +236,8 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
         pooling = parameterization.get(f"pooling_{i+1}")
         stride = parameterization.get(f"stride_{i+1}")
 
+        kernels.append(kernal_size)
+
         # If the number of filters is 0, then don't pay attention to the rest of the
         # parameterization for subsequent layers and only construct model current parameters
         if not num_filter:
@@ -253,8 +255,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
             filters.append(num_filter)
             strides.append((stride, stride))
             poolings.append(pooling)
-        kernels.append(kernal_size)
-        paddings.append('same')
+            paddings.append('same')
 
         names[0] = names[0] + f"c{num_filter}"
         names[1] = names[1] + f"k{kernal_size}"
