@@ -84,6 +84,8 @@ parser.add_argument('--maxCNNLayers', type=int, default = 3, dest="max_CNN_layer
             help="maximum number of CNN layers in the search space")
 parser.add_argument('--maxDenseLayers', type=int, default = 3, dest="max_Dense_Layers",
             help="maximum number of Dense layers in the search space")
+parser.add_argument('--miniBO', type=bool, default = True, dest="miniBO",
+            help="maximum number of Dense layers in the search space")
 
 def save_plot(plot, name):
     data = plot[0]['data']
@@ -217,7 +219,7 @@ def train_eval(args, model, epochs):
 
     return metrics
 
-def build_model(args, parameterization, cnn_layers, dense_layers):
+def build_model(args, parameterization, cnn_layers, dense_layers, minBO):
 
     # Create lists of parameters and a name and label for the model
     filters, kernels, poolings, strides, paddings, units = [], [], [], [], [], []
@@ -229,6 +231,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
             names[i], labels[i] = '_', '_'
 
     reduction_factor = 1
+    kernal_count = 0
 
     for i in range(cnn_layers):
         num_filter = parameterization.get(f"filters_{i+1}")
@@ -242,6 +245,12 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
         # parameterization for subsequent layers and only construct model current parameters
         if not num_filter:
             break
+
+        # Can't be more than one CNN layer with kernal size = 5 for padding issues
+        if kernal_size == 5:
+            kernal_count += 1
+            if kernal_count >= 2:
+                break
 
         # Ensure that reduction of size through pooling and stride doesn't go past 1x1 to avoid
         # problem where there is no reduction in the encoder past 1x1 but the decoder upsamples past
@@ -273,7 +282,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
         num_units = parameterization.get(f"units_{i+1}")
 
         # don't include rest of dense layers if current layer doesn't exist
-        if num_units < 16:
+        if num_units <= 15:
             break
 
         units.append(num_units)
@@ -349,9 +358,9 @@ def build_model(args, parameterization, cnn_layers, dense_layers):
 
     return False, model
 
-def evaluation(args, parameterization, cnn_layers, dense_layers):
+def evaluation(args, parameterization, cnn_layers, dense_layers, miniBO):
 
-    is_trained, model = build_model(args, parameterization, cnn_layers, dense_layers)
+    is_trained, model = build_model(args, parameterization, cnn_layers, dense_layers, miniBO)
     if is_trained:
         _logger.info("Current model has been explored, returning previous metrics")
         return model
@@ -369,67 +378,123 @@ def main(args):
 
     # Run a seperate experiment for each number of layers CNN layers and Dense layers
 
-    ax = AxClient()
-
     """ Set parameters and value of those parameters to be used in the optimization. There is a
         parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
         stride for each CNN layer. """
 
     ax_parameters = []
 
-    for cnn_layers in range(1, args.max_CNN_layers):
+    if args.miniBO:
+        for cnn_layers in range(0, args.max_CNN_layers+1):
+            for dense_layers in range(0, args.max_Dense_Layers+1):
+                if cnn_layers:
+                    ax_parameters.append({"name": f"filters_{cnn_layers}",
+                                    "type": "range",
+                                    "bounds": [1, 64],
+                                    "value_type": "int"
+                    })
+                    ax_parameters.append({"name": f"kernel_{cnn_layers}",
+                                        "type": "choice",
+                                        "is_ordered": True,
+                                        "value_type": "int",
+                                        "values": [1,3,5]
+                    })
+                    ax_parameters.append({"name": f"pooling_{cnn_layers}",
+                                        "type": "choice",
+                                        "is_ordered": True,
+                                        "value_type": "bool",
+                                        "values": [True, False]
+                    })
+                    ax_parameters.append({"name": f"stride_{cnn_layers}",
+                                        "type": "choice",
+                                        "is_ordered": True,
+                                        "value_type": "int",
+                                        "values": [1,2,4]
+                    })
+                if dense_layers:
+                    ax_parameters.append({"name": f"units_{dense_layers}",
+                                    "type": "range",
+                                    "bounds": [16, 64],
+                                    "value_type": "int"
+                    })
 
-        ax_parameters.append({"name": f"filters_{cnn_layers}",
-                            "type": "range",
-                            "bounds": [0, 64],
-                            "value_type": "int"
-        })
-        ax_parameters.append({"name": f"kernel_{cnn_layers}",
-                            "type": "choice",
-                            "is_ordered": True,
-                            "value_type": "int",
-                            "values": [1,3,5]
-        })
-        ax_parameters.append({"name": f"pooling_{cnn_layers}",
-                            "type": "choice",
-                            "is_ordered": True,
-                            "value_type": "bool",
-                            "values": [True, False]
-        })
-        ax_parameters.append({"name": f"stride_{cnn_layers}",
-                            "type": "choice",
-                            "is_ordered": True,
-                            "value_type": "int",
-                            "values": [1,2,4]
-        })
+                # Create Ax experiment
+                ax = AxClient()
 
-    for dense_layers in range(1, args.max_Dense_Layers):
-        ax_parameters.append({"name": f"units_{dense_layers}",
-                            "type": "range",
-                            "bounds": [15, 64],
-                            "value_type": "int"
-        })
+                ax.create_experiment(
+                    name=f"ECON-T_c{cnn_layers}d{dense_layers}",
+                    parameters=ax_parameters,
+                    objective_name="EMD",
+                    minimize=True
+                )
 
+                # Optimization loop
+                for i in range(args.opt_trials):
+                    parameterization, idx = ax.get_next_trial()
+                    ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, cnn_layers, dense_layers))
+                    print(ax.get_trials_data_frame())
 
-    # Create Ax experiment
-    ax.create_experiment(
-        name=f"ECON-T_c{cnn_layers}d{dense_layers}",
-        parameters=ax_parameters,
-        objective_name="EMD",
-        minimize=True
-    )
+                og_dir = os.getcwd()
+                os.chdir(args.odir)
+                df = ax.get_trials_data_frame()
+                df.to_csv(f'Trials.csv', index=False)
+                os.chdir(og_dir)
 
-    # Optimization loop
-    for i in range(args.opt_trials):
-        parameterization, idx = ax.get_next_trial()
-        ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, cnn_layers, dense_layers))
-        print(ax.get_trials_data_frame())
+    else:
+        ax = AxClient()
 
-    og_dir = os.getcwd()
-    os.chdir(args.odir)
-    df = ax.get_trials_data_frame()
-    df.to_csv(f'Trials.csv', index=False)
-    os.chdir(og_dir)
+        for cnn_layers in range(1, args.max_CNN_layers+1):
+
+            ax_parameters.append({"name": f"filters_{cnn_layers}",
+                                "type": "range",
+                                "bounds": [0, 64],
+                                "value_type": "int"
+            })
+            ax_parameters.append({"name": f"kernel_{cnn_layers}",
+                                "type": "choice",
+                                "is_ordered": True,
+                                "value_type": "int",
+                                "values": [1,3,5]
+            })
+            ax_parameters.append({"name": f"pooling_{cnn_layers}",
+                                "type": "choice",
+                                "is_ordered": True,
+                                "value_type": "bool",
+                                "values": [True, False]
+            })
+            ax_parameters.append({"name": f"stride_{cnn_layers}",
+                                "type": "choice",
+                                "is_ordered": True,
+                                "value_type": "int",
+                                "values": [1,2,4]
+            })
+
+        for dense_layers in range(1, args.max_Dense_Layers+1):
+            ax_parameters.append({"name": f"units_{dense_layers}",
+                                "type": "range",
+                                "bounds": [15, 64],
+                                "value_type": "int"
+            })
+
+        # Create Ax experiment
+        ax.create_experiment(
+            name=f"ECON-T",
+            parameters=ax_parameters,
+            objective_name="EMD",
+            minimize=True
+        )
+
+        # Optimization loop
+        for i in range(args.opt_trials):
+            parameterization, idx = ax.get_next_trial()
+            ax.complete_trial(trial_index=idx, raw_data=evaluation(args, parameterization, cnn_layers, dense_layers))
+            print(ax.get_trials_data_frame())
+
+        og_dir = os.getcwd()
+        os.chdir(args.odir)
+        df = ax.get_trials_data_frame()
+        df.to_csv(f'Trials.csv', index=False)
+        os.chdir(og_dir)
 
 
 if __name__ == '__main__':
