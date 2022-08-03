@@ -373,13 +373,14 @@ def evaluation(args, parameterization, cnn_layers, dense_layers, miniBO):
 
 def main(args):
 
-    # Run a seperate experiment for each number of layers CNN layers and Dense layers
-
-    """ Set parameters and value of those parameters to be used in the optimization. There is a
-        parameter (knob) for number of filters, kernal size, whether or not to use pooling, and the
-        stride for each CNN layer. """
 
     if args.miniBO:
+
+        """ MiniBO performs a combination of grid search for model structure and baysian optimization
+    for hyperparameter tunning. Here there are seperate experiments for each combination of number
+    of CNN layers and Dense layers, within each of those experiments bayesian optimization is used
+    to explore the hyperparameters within that model structure and minimize the EMD metric"""
+
         # Create directory to store results
         now = datetime.now()
         time = now.strftime("%d-%m-%Y--%H-%M-%S")
@@ -450,7 +451,24 @@ def main(args):
                     df.to_csv(f'Trials_ECON-T_c{cnn_layers}d{dense_layers}.csv', index=False)
                     os.chdir(og_dir)
 
+        # Put results from seperate experiments into one csv file
+        first = True
+        for filename in os.listdir(os.getcwd()):
+            if ".csv" in filename:
+                if first:
+                    df = pd.read_csv(filename)
+                    first = False
+                else:
+                    df = pd.concat([df, pd.read_csv(filename)])
+                os.remove(filename)
+
+        df.to_csv('All_Trails.csv', index=False)
+
     else:
+
+        """ Here parameters for every possible layer are passed to Ax and Ax can choose parameter
+        values that cause respective layers to be includes or not includes in the model. This is
+        descided after the fact in the build_model function. """
         # Create directory to store results
         now = datetime.now()
         time = now.strftime("%d-%m-%Y--%H-%M-%S")
