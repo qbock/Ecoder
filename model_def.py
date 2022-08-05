@@ -3,12 +3,66 @@ import boto3
 import keras
 import tarfile
 import determined as det
+import numpy as np
+import argparse
 from determined.keras import TFKerasTrial, TFKerasTrialContext, InputData
 from botocore.client import Config
 from telescope import telescopeMSE8x8
 from networks import arrange_dict
 from utils.logger import _logger
 from denseCNN import denseCNN
+from train import load_data, normalize, split
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
+                    help="output directory")
+parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="inputFile",
+                    help="input TSG files")
+parser.add_argument("--loss", type=str, default=None, dest="loss",
+                    help="force loss function to use")
+parser.add_argument("--quantize", action='store_true', default=False, dest="quantize",
+                    help="quantize the model with qKeras. Default precision is 16,6 for all values.")
+parser.add_argument("--epochs", type=int, default = 200, dest="epochs",
+                    help="number of epochs to train")
+parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
+                    help="n of active transceiver e-links eTX")
+
+parser.add_argument("--quickTrain", action='store_true', default = False,dest="quickTrain",
+                    help="train w only 5k events for testing purposes")
+parser.add_argument("--retrain", action='store_true', default = False,dest="retrain",
+                    help="retrain models even if weights are already present for testing purposes")
+parser.add_argument("--evalOnly", action='store_true', default = False,dest="evalOnly",
+                    help="only evaluate the NN on the input sample, no train")
+
+parser.add_argument("--double", action='store_true', default = False,dest="double",
+                    help="test PU400 by combining PU200 events")
+parser.add_argument("--overrideInput", action='store_true', default = False,dest="overrideInput",
+                    help="disable safety check on inputs")
+parser.add_argument("--nCSV", type=int, default = 1, dest="nCSV",
+                    help="n of validation events to write to csv")
+parser.add_argument("--maxVal", type=int, default = -1, dest="maxVal",
+                    help="clip outputs to maxVal")
+parser.add_argument("--AEonly", type=int, default=1, dest="AEonly",
+                    help="run only AE algo")
+parser.add_argument("--rescaleInputToMax", action='store_true', default=False, dest="rescaleInputToMax",
+                    help="rescale the input images so the maximum deposit is 1. Else normalize")
+parser.add_argument("--rescaleOutputToMax", action='store_true', default=False, dest="rescaleOutputToMax",
+                    help="rescale the output images to match the initial sum of charge")
+parser.add_argument("--nrowsPerFile", type=int, default=500000, dest="nrowsPerFile",
+                    help="load nrowsPerFile in a directory")
+
+parser.add_argument("--maskPartials", action='store_true', default = False,dest="maskPartials",
+                    help="mask partial modules")
+parser.add_argument("--maskEnergies", action='store_true', default = False,dest="maskEnergies",
+                    help="Mask energy fractions <= 0.05")
+parser.add_argument("--saveEnergy", action='store_true', default = False,dest="saveEnergy",
+                    help="save SimEnergy from input data")
+parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
+                    help="input data has no header")
+
+parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models",
+                    help="models to run, if empty string run all")
+
 
 def apply_constraints(context):
 
@@ -45,10 +99,14 @@ def apply_constraints(context):
 
 class ECONT(TFKerasTrial):
     def __init__(self, context: TFKerasTrialContext, nElinks = 5, loss = None):
+        self.args = parser.parse_args()
         self.context = context
         self.nElinks = nElinks
         self.loss = loss
+        self.dataloc = ""
         self.x_train, self.y_train, self.x_test, self.y_test = None,None,None,None
+
+        self.download_dataset()
 
     def build_model(self):
         # Create lists of parameters and a name and label for the model
@@ -154,17 +212,17 @@ class ECONT(TFKerasTrial):
             model['params']['loss'] = self.loss
 
         # Create denseCNN model from the model parameters.
-        models = denseCNN()
-        models.setpams(model['params'])
-        models.init()
+        m = denseCNN()
+        m.setpams(model['params'])
+        m.init()
 
         # Wrap the model.
-        models = self.context.wrap_model(model)
+        m = self.context.wrap_model(m)
 
         # Compile model
-        models.compileModels()
+        m.compileModels()
 
-        return model
+        return m
 
     def build_training_data_loader(self) -> InputData:
         return self.x_train, self.y_train
@@ -203,4 +261,52 @@ class ECONT(TFKerasTrial):
         print("Training data downloaded & extracted successfully! Location in pod: " + self.dataloc)
 
     def load_split_data(self):
-        pass
+        data_values, phys_values = load_data(self.args)
+
+        # measure TC occupancy
+        occupancy_all = np.count_nonzero(data_values,axis=1) # measure non-zero TCs (should be all)
+        occupancy_all_1MT = np.count_nonzero(data_values>35,axis=1) # measure TCs with charge > 35
+
+        # normalize input charge data
+        # rescaleInputToMax: normalizes charges to maximum charge in module
+        # sumlog2 (default): normalizes charges to 2**floor(log2(sum of charge in module)) where floor is the largest scalar integer: i.e. normalizes to MSB of the sum of charges (MSB here is the most significant bit)
+        # rescaleSum: normalizes charges to sum of charge in module
+        normdata,maxdata,sumdata = normalize(data_values.copy(),rescaleInputToMax=self.args.rescaleInputToMax,sumlog2=True)
+        maxdata = maxdata / 35. # normalize to units of transverse MIPs
+        sumdata = sumdata / 35. # normalize to units of transverse MIPs
+
+        # performance dictionary
+        perf_dict={}
+
+        #Putting back physics columns below once training is done
+        print(f'len phys_values: {len(phys_values)}')
+        Nphys = round(len(phys_values)*0.2)
+        print(f'Nphys = {Nphys}')
+        phys_val_input = phys_values[:Nphys]
+        # phys_val_input=phys_val_input
+
+        shape = (8,8,1)
+        arrange_pairs = arrange_dict['8x8']
+
+        if len(arrange_pairs['arrange'])>0:
+            arrange = arrange_pairs['arrange']
+            inputdata = normdata[:,arrange]
+        else:
+            inputdata = normdata
+        if len(arrange_pairs['arrMask'])>0:
+            arrMask = arrange_pairs['arrMask']
+            inputdata[:,arrMask==0]=0  #zeros out repeated entries
+
+        shaped_data = inputdata.reshape(len(inputdata),shape[0],shape[1],shape[2])
+
+        if self.pams['n_copy']>0:
+            n_copy  = self.pams['n_copy']
+            occ_low = self.pams['occ_low']
+            occ_hi = self.pams['occ_hi']
+            shaped_data = self.cloneInput(shaped_data,n_copy,occ_low,occ_hi)
+
+        shaped_data
+
+        test_input, train_input, val_ind, train_ind = split(shaped_data)
+        self.x_train, self.y_train = train_input, train_input
+        self.x_test, self.y_test = test_input, test_input
