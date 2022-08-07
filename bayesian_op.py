@@ -396,9 +396,10 @@ def main(args):
                 if cnn_layers:
                     for i in range(1, cnn_layers+1):
                         ax_parameters.append({"name": f"filters_{i}",
-                                        "type": "range",
-                                        "bounds": [1, 64],
-                                        "value_type": "int"
+                                            "type": "choice",
+                                            "is_ordered": True,
+                                            "value_type": "int",
+                                            "values": [0,2,4,8,16,32,64]
                         })
                         ax_parameters.append({"name": f"kernel_{i}",
                                             "type": "choice",
@@ -421,9 +422,10 @@ def main(args):
                 if dense_layers:
                     for i in range(1, dense_layers+1):
                         ax_parameters.append({"name": f"units_{i}",
-                                        "type": "range",
-                                        "bounds": [16, 64],
-                                        "value_type": "int"
+                                            "type": "choice",
+                                            "is_ordered": True,
+                                            "value_type": "int",
+                                            "values": [0,2,4,8,16,32,64]
                         })
 
                 # Need to have some parameters to feed to Ax
@@ -482,9 +484,10 @@ def main(args):
         for cnn_layers in range(0, args.max_CNN_layers+1):
 
             ax_parameters.append({"name": f"filters_{cnn_layers + 1}",
-                                "type": "range",
-                                "bounds": [0, 64],
-                                "value_type": "int"
+                                "type": "choice",
+                                "is_ordered": True,
+                                "value_type": "int",
+                                "values": [0,2,4,8,16,32,64]
             })
             ax_parameters.append({"name": f"kernel_{cnn_layers + 1}",
                                 "type": "choice",
@@ -507,9 +510,10 @@ def main(args):
 
         for dense_layers in range(1, args.max_Dense_Layers+1):
             ax_parameters.append({"name": f"units_{dense_layers + 1}",
-                                "type": "range",
-                                "bounds": [15, 64],
-                                "value_type": "int"
+                                "type": "choice",
+                                "is_ordered": True,
+                                "value_type": "int",
+                                "values": [0,2,4,8,16,32,64]
             })
 
         # Create Ax experiment
@@ -532,7 +536,6 @@ def main(args):
         df = ax.get_trials_data_frame()
         df.to_csv(f'Trials.csv', index=False)
         os.chdir(og_dir)
-
 
 if __name__ == '__main__':
     args = parser.parse_args()
