@@ -388,7 +388,7 @@ def main(args):
         args.odir = os.path.join(args.odir, file_name)
         os.makedirs(args.odir)
 
-        for cnn_layers in range(0, args.max_CNN_layers+1):
+        for cnn_layers in range(1, args.max_CNN_layers+1):
             for dense_layers in range(0, args.max_Dense_Layers+1):
 
                 ax_parameters = []
