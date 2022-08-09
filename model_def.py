@@ -11,7 +11,7 @@ from telescope import telescopeMSE8x8
 from networks import arrange_dict
 from utils.logger import _logger
 from denseCNN import denseCNN
-from train import load_data, normalize, split
+from train import load_data, normalize, unnormalize, split, evaluate_model
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
@@ -97,16 +97,131 @@ def apply_constraints(context):
         if reduction_factor * 8 >= 1:
             det.InvalidHP("Hyperparameters reduce size of the input too far")
 
+class EMDCallback(keras.callbacks.Callback):
+    def __init__(self, args=None, data_values=None, phys_values=None, model=None, interval=10):
+        super(keras.callbacks.Callback, self).__init__()
+        self.args = args
+        self.interval = interval
+        self.data_values = data_values
+        self.model = model
+        self.phys_values = phys_values
+
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch % self.interval == 0:
+            # normalize input charge data
+            normdata,maxdata,sumdata = normalize(self.data_values.copy(),rescaleInputToMax=self.args.rescaleInputToMax,sumlog2=True)
+            maxdata = maxdata / 35. # normalize to units of transverse MIPs
+            sumdata = sumdata / 35. # normalize to units of transverse MIPs
+
+            # evaluate performance
+            from utils.metrics import emd
+
+            eval_dict = {
+                # compare to other algorithms
+                'algnames'    : ['ae','stc','thr_lo','thr_hi','bc'],
+                'metrics'     : {'EMD': emd},
+                "occ_nbins"   : 12,
+                "occ_range"   : (0,24),
+                "occ_bins"    : [0,2,5,10,15],
+                "chg_nbins"   : 20,
+                "chg_range"   : (0,200),
+                "chglog_nbins": 20,
+                "chglog_range": (0,2.5),
+                "chg_bins"    : [0,2,5,10,50],
+                "occTitle"    : r"occupancy [1 MIP$_{\mathrm{T}}$ TCs]"       ,
+                "logMaxTitle" : r"log10(Max TC charge/MIP$_{\mathrm{T}}$)",
+                "logTotTitle" : r"log10(Sum of TC charges/MIP$_{\mathrm{T}}$)",
+            }
+
+            # performance dictionary
+            perf_dict={}
+
+            #Putting back physics columns below once training is done
+            print(f'len phys_values: {len(self.phys_values)}')
+            Nphys = round(len(self.phys_values)*0.2)
+            print(f'Nphys = {Nphys}')
+            phys_val_input = self.phys_values[:Nphys]
+            # phys_val_input=phys_val_input
+
+            shaped_data = self.m.prepInput(normdata)
+
+            val_input, train_input, val_ind, train_ind = split(shaped_data)
+
+            val_max = maxdata[val_ind]
+            val_sum = sumdata[val_ind]
+
+            # evaluate model
+            input_Q, cnn_deQ, cnn_enQ = self.m.predict(val_input)
+
+            input_calQ  = self.m.mapToCalQ(input_Q)   # shape = (N,48) in CALQ order
+            output_calQ_fr = self.m.mapToCalQ(cnn_deQ)   # shape = (N,48) in CALQ order
+            _logger.info('inputQ shape')
+            print(input_Q.shape)
+            _logger.info('inputcalQ shape')
+            print(input_calQ.shape)
+
+            _logger.info('Restore normalization')
+            input_Q_abs = np.array([input_Q[i]*(val_max[i] if self.args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit
+            input_calQ  = np.array([input_calQ[i]*(val_max[i] if self.args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_calQ)) ])  # shape = (N,48) in CALQ order
+            output_calQ =  unnormalize(output_calQ_fr.copy(), val_max if self.args.rescaleOutputToMax else val_sum, rescaleOutputToMax=self.args.rescaleOutputToMax)
+
+            _logger.info('Renormalize inputs of AE for comparisons')
+            occupancy_0MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48),axis=1)
+            occupancy_1MT = np.count_nonzero(input_calQ.reshape(len(input_Q),48)>1.,axis=1)
+
+            charges = {
+                'input_Q'    : input_Q,
+                'input_Q_abs': input_Q_abs,
+                'input_calQ' : input_calQ,            # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
+                'output_calQ': output_calQ,           # shape = (N,48) (in abs Q)   (in CALQ 1-48 order)
+                'output_calQ_fr': output_calQ_fr,     # shape = (N,48) (in Q fr)   (in CALQ 1-48 order)
+                'cnn_deQ'    : cnn_deQ,
+                'cnn_enQ'    : cnn_enQ,
+                'val_sum'    : val_sum,
+                'val_max'    : val_max,
+            }
+
+            aux_arrs = {
+                'occupancy_1MT':occupancy_1MT
+            }
+
+            perf_dict[self.model['label']] , self.model['summary_dict'] = evaluate_model(self.model,charges,aux_arrs,eval_dict,self.args)
+
+            EMD = self.model['summary_dict']['EMD_ae']
+            EMD_error = self.model['summary_dict']['EMD_ae_err']
+
+
+
 class ECONT(TFKerasTrial):
     def __init__(self, context: TFKerasTrialContext, nElinks = 5, loss = None):
+
         self.args = parser.parse_args()
         self.context = context
         self.nElinks = nElinks
         self.loss = loss
         self.dataloc = ""
         self.x_train, self.y_train, self.x_test, self.y_test = None,None,None,None
+        self.model, self.m = None,None
 
         self.download_dataset()
+
+    def keras_callbacks(self):
+        callbacks = []
+
+        estop = det.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            min_delta=0,
+            patience=5,
+            verbose=0,
+            mode="auto",
+            baseline=None,
+            restore_best_weights=True,)
+        callbacks.append(estop)
+        print("Callback: EarlyStopping Enabled")
+        emd = EMDCallback(self.args,self.data_values,self.phys_values,self.model)
+        print("Callback: EMD Enabled")
+        callbacks.append(emd)
+        return callbacks
 
     def build_model(self):
         # Create lists of parameters and a name and label for the model
@@ -211,18 +326,20 @@ class ECONT(TFKerasTrial):
         if self.loss:
             model['params']['loss'] = self.loss
 
+        self.model = model
+
         # Create denseCNN model from the model parameters.
         m = denseCNN()
         m.setpams(model['params'])
-        m.init()
+        # The determined model and optimizer wraping is done in the model initaliztion
+        m.init(context=self.context)
 
-        # Wrap the model.
-        m = self.context.wrap_model(m)
+        m_autoCNN , m_autoCNNen = m.get_models()
+        self.m = m_autoCNN
+        model['m_autoCNN'] = m_autoCNN
+        model['m_autoCNNen'] = m_autoCNNen
 
-        # Compile model
-        m.compileModels()
-
-        return m
+        return m_autoCNN
 
     def build_training_data_loader(self) -> InputData:
         return self.x_train, self.y_train
@@ -262,6 +379,8 @@ class ECONT(TFKerasTrial):
 
     def load_split_data(self):
         data_values, phys_values = load_data(self.args)
+        self.data_values = data_values
+        self.phys_values = phys_values
 
         # measure TC occupancy
         occupancy_all = np.count_nonzero(data_values,axis=1) # measure non-zero TCs (should be all)
