@@ -300,7 +300,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers, minBO):
     # Check name to see if model has been trained already
     for filename in os.listdir(args.odir):
         if filename == name:
-            metric_dir = os.path.join(args.odir, filename, "metrics.txt")
+            metric_dir = os.path.join(args.odir, filename, "metrics.json")
             metrics = {}
             with open(metric_dir, 'r') as file:
                 metrics = json.load(file)
