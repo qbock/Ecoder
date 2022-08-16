@@ -1,7 +1,7 @@
 from tensorflow.keras.layers import Layer,Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Conv2DTranspose, Reshape, Activation
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
-from tensorflow.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 import json
 from telescope import telescopeMSE2
