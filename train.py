@@ -279,9 +279,9 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
     es = callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=30)
 
     if train_weights != None:
-        history = autoencoder.fit(train_input,train_target,sample_weight=train_weights,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
+        history = autoencoder.fit(train_input,train_target,sample_weight=train_weights,epochs=n_epochs,batch_size=200,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
     else:
-        history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
+        history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=200,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
 
     plot_loss(history,name)
 
