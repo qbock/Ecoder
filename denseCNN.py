@@ -1,6 +1,7 @@
 from tensorflow.keras.layers import Layer,Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Conv2DTranspose, Reshape, Activation
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
+from tensorflow.optimizers import Adam
 import numpy as np
 import json
 from telescope import telescopeMSE2
@@ -103,7 +104,7 @@ class denseCNN:
         loss   = K.mean(K.square(y_true - y_pred)*K.maximum(y_pred,y_true),axis=(-1))
         return loss
 
-    def init(self,printSummary=True):
+    def init(self,printSummary=True, lr=0.001):
         encoded_dim = self.pams['encoded_dim']
 
         CNN_layer_nodes   = self.pams['CNN_layer_nodes']
@@ -188,7 +189,7 @@ class denseCNN:
         if printSummary:
           self.autoencoder.summary()
 
-        self.compileModels()
+        self.compileModels(lr)
 
         CNN_layers=''
         if len(CNN_layer_nodes)>0:
@@ -210,8 +211,11 @@ class denseCNN:
         return
 
 
-    def compileModels(self):
-        opt = self.pams['optimizer']
+    def compileModels(self, lr):
+        if self.pams['optimizer'] == "adam":
+            opt = Adam(learning_rate=lr)
+        else:
+            opt = self.pams['optimizer']
 
         print('Using optimizer', opt)
         if self.pams['loss']=="weightedMSE":

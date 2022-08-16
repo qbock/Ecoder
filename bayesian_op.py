@@ -85,7 +85,11 @@ parser.add_argument('--maxCNNLayers', type=int, default = 3, dest="max_CNN_layer
 parser.add_argument('--maxDenseLayers', type=int, default = 3, dest="max_Dense_Layers",
             help="maximum number of Dense layers in the search space")
 parser.add_argument('--miniBO', type=bool, default = True, dest="miniBO",
-            help="maximum number of Dense layers in the search space")
+            help="Whether or not to train with hybrid grid/BO approach")
+parser.add_argument('--includeLR', type=bool, default = False, dest="includeLR",
+            help="Include learning rate in optimization")
+parser.add_argument('--includeBS', type=bool, default = False, dest="includeBS",
+            help="Include batch size in optimization")
 
 def save_plot(plot, name):
     data = plot[0]['data']
@@ -399,7 +403,7 @@ def main(args):
                                             "type": "choice",
                                             "is_ordered": True,
                                             "value_type": "int",
-                                            "values": [0,2,4,8,16,32,64]
+                                            "values": [2,4,8,16,32,64]
                         })
                         ax_parameters.append({"name": f"kernel_{i}",
                                             "type": "choice",
@@ -427,6 +431,15 @@ def main(args):
                                             "value_type": "int",
                                             "values": [16,32,64]
                         })
+                if args.includeLR:
+                    ax_parameters.append({"name": "learning_rate",
+                                "type": "range",
+                                "bounds": [1e-1,1e-4]})
+                if args.includeBS:
+                    ax_parameters.append({"name": "batch_size",
+                                        "is_ordered": True,
+                                        "value_type": "int",
+                                        "values": [50,100,150,200,250,300,350,400]})
 
                 # Need to have some parameters to feed to Ax
                 if cnn_layers or dense_layers:
@@ -515,6 +528,15 @@ def main(args):
                                 "value_type": "int",
                                 "values": [0,2,4,8,16,32,64]
             })
+        if args.includeLR:
+                    ax_parameters.append({"name": "learning_rate",
+                                "type": "range",
+                                "bounds": [1e-1,1e-4]})
+        if args.includeBS:
+            ax_parameters.append({"name": "batch_size",
+                                "is_ordered": True,
+                                "value_type": "int",
+                                "values": [50,100,150,200,250,300,350,400]})
 
         # Create Ax experiment
         ax.create_experiment(
