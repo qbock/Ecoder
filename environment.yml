@@ -14,7 +14,6 @@ dependencies:
     - jupyter
     - tensorflow
     - keras
-    - git+git://github.com/google/qkeras.git#egg=qkeras
     - tensorflow-model-optimization
     - pot
     - mplhep

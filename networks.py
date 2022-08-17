@@ -221,7 +221,7 @@ networks_by_name = [
         'CNN_kernel_size':[5,3],
         'CNN_strides':[(4,4), (4,4)],
         'CNN_padding': ['same', 'same'],
-        'CNN_pool': [False],
+        'CNN_pool': [False, False],
         },
     },
 
