@@ -150,6 +150,9 @@ def train_eval(args, model, epochs):
     if not os.path.exists(model['name']): os.mkdir(model['name'])
     os.chdir(model['name'])
 
+    with open('network.json', 'w') as file:
+        json.dump(model, file)
+
     # train the model
     _logger.info("Model is a denseCNN")
     m = denseCNN()
@@ -249,12 +252,6 @@ def build_model(args, parameterization, cnn_layers, dense_layers, minBO):
             kernels.append((3,3))
             break
 
-        # Can't be more than one CNN layer with kernal size = 5 for padding issues
-        if kernel_size == 5:
-            kernal_count += 1
-            if kernal_count >= 2:
-                break
-
         # Ensure that reduction of size through pooling and stride doesn't go past 1x1 to avoid
         # problem where there is no reduction in the encoder past 1x1 but the decoder upsamples past
         # the orginal 8x8 dimension
@@ -269,19 +266,15 @@ def build_model(args, parameterization, cnn_layers, dense_layers, minBO):
             strides.append((stride, stride))
             poolings.append(pooling)
             paddings.append('same')
+            names[0] = names[0] + f"c{num_filter}"
+            names[1] = names[1] + f"k{kernel_size}"
+            names[2] = names[2] + f"p{pooling}"
+            names[3] = names[3] + f"s{stride}"
+            labels[0] = labels[0] + f"c[{num_filter}]"
+            labels[1] = labels[1] + f"k[{kernel_size}]"
+            labels[2] = labels[2] + f"p[{pooling}]"
+            labels[3] = labels[3] + f"s[{stride}]"
 
-        names[0] = names[0] + f"c{num_filter}"
-        names[1] = names[1] + f"k{kernel_size}"
-        names[2] = names[2] + f"p{pooling}"
-        names[3] = names[3] + f"s{stride}"
-        labels[0] = labels[0] + f"c[{num_filter}]"
-        labels[1] = labels[1] + f"k[{kernel_size}]"
-        labels[2] = labels[2] + f"p[{pooling}]"
-        labels[3] = labels[3] + f"s[{stride}]"
-
-    # Add kernal size for fixed CNN layer when there are no other CNN layers
-    if minBO and not cnn_layers:
-        kernels = [(3,3)]
 
     if dense_layers > 0:
         names[4], labels[4] = '_', '_'
@@ -509,7 +502,7 @@ def main(args):
                                 "type": "choice",
                                 "is_ordered": True,
                                 "value_type": "int",
-                                "values": [1,3,5]
+                                "values": [1,3]
             })
             ax_parameters.append({"name": f"pooling_{cnn_layers + 1}",
                                 "type": "choice",
