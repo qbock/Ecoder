@@ -12,7 +12,6 @@ training
 comp_all
 Ax_optimization
 data
-best_emd
 
 README.md
 ot_conda_packages.txt
