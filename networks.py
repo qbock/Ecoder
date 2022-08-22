@@ -253,6 +253,22 @@ networks_by_name = [
         },
     },
 
+    {'name': '8x8_u64teleLRNoneBS50', 
+    'label': '8x8_u[64](tele)', 
+    'arr_key': '8x8', 
+    'isQK': False, 
+    'params': {
+        'shape': (8, 8, 1), 
+        'loss':telescopeMSE8x8,
+        'CNN_layer_nodes': [], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [], 
+        'CNN_padding': [], 
+        'CNN_pool': [], 
+        'Dense_layer_nodes': [50], 
+        'learning_rate': 0.001, 
+        'batch_size': 50
+    }},
     # End networks for BO retraining
 
     {'name':'8x8_c8_S2_pair_huber',

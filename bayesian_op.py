@@ -11,6 +11,7 @@ from telescope import telescopeMSE8x8
 from networks import arrange_dict
 from datetime import datetime
 from utils.metrics import emd
+from add_flops import add_flops
 
 from argparse import ArgumentParser
 from ax.service.ax_client import AxClient
@@ -462,6 +463,7 @@ def main(args):
                     df.to_csv(f'Trials_ECON-T_c{cnn_layers}d{dense_layers}.csv', index=False)
                     os.chdir(og_dir)
 
+        os.chdir(args.odir)
         # Put results from seperate experiments into one csv file
         first = True
         for filename in os.listdir(os.getcwd()):
@@ -474,6 +476,8 @@ def main(args):
                 os.remove(filename)
 
         df.to_csv('All_Trails.csv', index=False)
+        add_flops('All_Trails.csv','All_Trails.csv')
+        os.chdir(og_dir)
 
     else:
 
