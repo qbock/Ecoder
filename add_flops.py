@@ -88,7 +88,8 @@ def add_flops(infile, outfile):
                 table.append(row)
 
     df = pd.DataFrame(table)
-    df.to_csv(outfile)
+    print(df)
+    df.to_csv(outfile, header=False, index=False)
 
 
 if __name__ == '__main__':
