@@ -15,14 +15,6 @@ parser.add_argument('-p',"--plot", type=str, default='EMD', dest="whichPlot",
 
 class plot():
     def __init__(self, args):
-        # self.fig, self.ax = plt.subplots()
-        # x = np.arange(-10,10)
-        # y = x**2
-
-        # self.fig = plt.figure()
-        # self.ax = self.fig.add_subplot(111)
-        # self.ax.plot(x,y)
-
         self.df = pd.read_csv('All_Trials_OPs.csv')
         self.ops = self.df.loc[:,"OPs"]
         self.emd = self.df.loc[:,"EMD"]
@@ -49,17 +41,6 @@ class plot():
 
         self.cid = self.fig.canvas.mpl_connect('button_press_event', self.onclick)
     
-    # def onclick(self, event):
-    #     global ix, iy
-    #     ix, iy = event.xdata, event.ydata
-    #     try:
-    #         print('x = %d, y = %d'%(ix, iy))
-    #     except(TypeError):
-    #         pass
-
-    #     global coords
-    #     coords.append((ix, iy))
-
 
     def onclick(self, event):
         if event.inaxes == self.ax:
