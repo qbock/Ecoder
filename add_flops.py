@@ -48,6 +48,7 @@ def add_flops(infile, outfile):
                 for idx, header in enumerate(row):
                     header_dict[idx] = header
                 row.append("OPs")
+                row.append("info")
                 table.append(row)
             
             # Add networks info from row into model definition
@@ -78,17 +79,16 @@ def add_flops(infile, outfile):
                 for i in range(len(params['CNN_layer_nodes'])):
                     params['CNN_padding'].append('same')
 
-                print(params)
                 m = denseCNN()
                 m.setpams(params)
                 m.init()
                 m_autoCNN , m_autoCNNen = m.get_models()
                 ops = get_flops_from_model(m_autoCNNen)
                 row.append(ops)
+                row.append(f"C: {params['CNN_layer_nodes']}, K: {params['CNN_kernel_size']}, P: {params['CNN_pool']}, S: {params['CNN_strides']}, D: {params['Dense_layer_nodes']}")
                 table.append(row)
 
     df = pd.DataFrame(table)
-    print(df)
     df.to_csv(outfile, header=False, index=False)
 
 
