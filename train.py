@@ -5,14 +5,13 @@ import json
 import pickle
 import codecs
 import os
-import numba
 import tensorflow as tf
 from tensorflow.keras import losses
 
-from qkeras import get_quantizer,QActivation
-from qkeras.utils import model_save_quantized_weights
+# from qkeras import get_quantizer,QActivation
+# from qkeras.utils import model_save_quantized_weights
 
-from qDenseCNN import qDenseCNN
+# from qDenseCNN import qDenseCNN
 from denseCNN import denseCNN
 from dense2DkernelCNN import dense2DkernelCNN
 
@@ -20,7 +19,7 @@ from get_flops import get_flops_from_model
 
 from utils.logger import _logger
 from utils.plot import plot_loss, plot_hist, visualize_displays, plot_profile, overlay_plots
-from emd_v_eta import plot_eta
+# from emd_v_eta import plot_eta
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
@@ -79,7 +78,6 @@ parser.add_argument("--noHeader", action='store_true', default = False,dest="noH
 parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models",
                     help="models to run, if empty string run all")
 
-@numba.jit
 def normalize(data,rescaleInputToMax=False, sumlog2=True):
     maxes =[]
     sums =[]
@@ -99,7 +97,6 @@ def normalize(data,rescaleInputToMax=False, sumlog2=True):
     else:
         return data,np.array(maxes),np.array(sums)
 
-@numba.jit
 def unnormalize(norm_data,maxvals,rescaleOutputToMax=False, sumlog2=True):
     for i in range(len(norm_data)):
         if rescaleOutputToMax:
@@ -289,8 +286,8 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
         pickle.dump(history.history, file_pi)
 
     isQK = False
-    for layer in autoencoder.layers[1].layers:
-        if QActivation == type(layer): isQK = True
+    # for layer in autoencoder.layers[1].layers:
+    #     if QActivation == type(layer): isQK = True
 
     def save_models(autoencoder, name, isQK=False):
         from utils import graph
@@ -305,10 +302,11 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
         encoder.save_weights('%s.hdf5'%("encoder_"+name))
         decoder.save_weights('%s.hdf5'%("decoder_"+name))
         if isQK:
-            encoder_qWeight = model_save_quantized_weights(encoder)
-            with open('encoder_'+name+'.pkl','wb') as f:
-                pickle.dump(encoder_qWeight,f)
-            encoder = graph.set_quantized_weights(encoder,'encoder_'+name+'.pkl')
+            # encoder_qWeight = model_save_quantized_weights(encoder)
+            # with open('encoder_'+name+'.pkl','wb') as f:
+            #     pickle.dump(encoder_qWeight,f)
+            # encoder = graph.set_quantized_weights(encoder,'encoder_'+name+'.pkl')
+            pass
         graph.write_frozen_graph(encoder,'encoder_'+name+'.pb')
         graph.write_frozen_graph(encoder,'encoder_'+name+'.pb.ascii','./',True)
         graph.write_frozen_graph(decoder,'decoder_'+name+'.pb')
@@ -651,8 +649,9 @@ def main(args):
         os.chdir(model_name)
 
         if model['isQK']:
-            _logger.info("Model is a qDenseCNN")
-            m = qDenseCNN(weights_f=model['ws'])
+            # _logger.info("Model is a qDenseCNN")
+            # m = qDenseCNN(weights_f=model['ws'])
+            pass
         elif model['isDense2D']:
             _logger.info("Model is a dense2DkernelCNN")
             m = dense2DkernelCNN(weights_f=model['ws'])

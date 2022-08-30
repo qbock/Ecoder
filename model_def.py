@@ -5,7 +5,7 @@ import tarfile
 import determined as det
 import numpy as np
 import argparse
-from determined.keras import TFKerasTrial, TFKerasTrialContext, InputData
+from determined.keras import TFKerasTrial, TFKerasTrialContext, InputData, TFKerasExperimentalContext
 from botocore.client import Config
 from telescope import telescopeMSE8x8
 from networks import arrange_dict
@@ -14,9 +14,9 @@ from denseCNN import denseCNN
 from train import load_data, normalize, unnormalize, split, evaluate_model
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-o',"--odir", type=str, default='CNN/PU/', dest="odir",
+parser.add_argument('-o',"--odir", type=str, default='/comp_all', dest="odir",
                     help="output directory")
-parser.add_argument('-i',"--inputFile", type=str, default='nElinks_5/', dest="inputFile",
+parser.add_argument('-i',"--inputFile", type=str, default='/tmp/data-rank0', dest="inputFile",
                     help="input TSG files")
 parser.add_argument("--loss", type=str, default=None, dest="loss",
                     help="force loss function to use")
@@ -57,7 +57,7 @@ parser.add_argument("--maskEnergies", action='store_true', default = False,dest=
                     help="Mask energy fractions <= 0.05")
 parser.add_argument("--saveEnergy", action='store_true', default = False,dest="saveEnergy",
                     help="save SimEnergy from input data")
-parser.add_argument("--noHeader", action='store_true', default = False,dest="noHeader",
+parser.add_argument("--noHeader", action='store_true', default = True,dest="noHeader",
                     help="input data has no header")
 
 parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models",
@@ -66,23 +66,29 @@ parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models
 
 def apply_constraints(context):
 
+    print("Applying constraints")
+
     # Look at hyperparameters for each CNN layers, if the number of filters in layer i is 0 then
     # subsequent layers and their hyperparameters are eliminated
     max_cnn_layers = context.get_hparam("max_cnn_layers")
     for i in range(1, max_cnn_layers+1):
         if context.get_hparam(f"filters{i}") == 0:
-            for j in range(i+1, max_cnn_layers):
+            print("found non existant CNN layer")
+            for j in range(i+1, max_cnn_layers+1):
                 if context.get_hparam(f"filters{j}") > 0:
-                    det.InvalidHP(
+                    print("erroring for sucessive non zero CNN layer")
+                    raise det.InvalidHP(
                         "Can't produce subqequent CNN layers after CNN layer with 0 filters")
 
     # Do the same for Dense layers
     max_dense_layers = context.get_hparam("max_dense_layers")
     for i in range(1, max_dense_layers+1):
         if context.get_hparam(f"dense{i}") == 15:
+            print("found non existant Dense layer")
             for j in range(i+1, max_dense_layers):
                 if context.get_hparam(f"dense{j}") > 15:
-                    det.InvalidHP(
+                    print("erroring for sucessive non zero Dense layer")
+                    raise det.InvalidHP(
                         "Can't produce subqequent Dense layers after Dense layer with 0 filters")
 
     # Constrain the factor by which the input dimensions are shrunk so that they that the decoder
@@ -91,11 +97,15 @@ def apply_constraints(context):
 
     for i in range(1, max_cnn_layers+1):
         reduction_factor /= context.get_hparam(f"stride{i}")
-        if context.get_hparam(f"pooling{i}") == "include":
+        print(f"Reduction factor: {reduction_factor}")
+        print(context.get_hparam(f"maxpool{i}"))
+        print(type(context.get_hparam(f"maxpool{i}")))
+        if context.get_hparam(f"maxpool{i}") == True:
             reduction_factor /= 2
 
-        if reduction_factor * 8 >= 1:
-            det.InvalidHP("Hyperparameters reduce size of the input too far")
+        if reduction_factor * 8 <= 1:
+            raise det.InvalidHP("Hyperparameters reduce size of the input too far")
+
 
 class EMDCallback(keras.callbacks.Callback):
     def __init__(self, args=None, data_values=None, phys_values=None, model=None, interval=10):
@@ -191,19 +201,21 @@ class EMDCallback(keras.callbacks.Callback):
             EMD_error = self.model['summary_dict']['EMD_ae_err']
 
 
-
 class ECONT(TFKerasTrial):
     def __init__(self, context: TFKerasTrialContext, nElinks = 5, loss = None):
 
         self.args = parser.parse_args()
-        self.context = context
+        self.context = context 
         self.nElinks = nElinks
         self.loss = loss
         self.dataloc = ""
         self.x_train, self.y_train, self.x_test, self.y_test = None,None,None,None
         self.model, self.m = None,None
 
+        apply_constraints(self.context)
+
         self.download_dataset()
+        self.load_split_data()
 
     def keras_callbacks(self):
         callbacks = []
@@ -237,22 +249,22 @@ class ECONT(TFKerasTrial):
         # Populate the list of parameters
         for i in range(1, max_cnn_layers+1):
             num_filter = self.context.get_hparam(f"filters{i}")
-            kernal_size = self.context.get_hparam(f"kernel{i}")
-            pooling = self.context.get_hparam(f"pooling{i}")
+            kernel_size = self.context.get_hparam(f"kernel{i}")
+            pooling = self.context.get_hparam(f"maxpool{i}")
             stride = self.context.get_hparam(f"stride{i}")
 
-            kernels.append(kernal_size)
+            kernels.append(kernel_size)
             filters.append(num_filter)
             strides.append((stride, stride))
             poolings.append(pooling)
             paddings.append('same')
 
             names[0] = names[0] + f"c{num_filter}"
-            names[1] = names[1] + f"k{kernal_size}"
+            names[1] = names[1] + f"k{kernel_size}"
             names[2] = names[2] + f"p{pooling}"
             names[3] = names[3] + f"s{stride}"
             labels[0] = labels[0] + f"c[{num_filter}]"
-            labels[1] = labels[1] + f"k[{kernal_size}]"
+            labels[1] = labels[1] + f"k[{kernel_size}]"
             labels[2] = labels[2] + f"p[{pooling}]"
             labels[3] = labels[3] + f"s[{stride}]"
 
@@ -280,7 +292,7 @@ class ECONT(TFKerasTrial):
                 'isQK':False,
                 'params':{
                     'shape':(8,8,1),
-                    'loss':telescopeMSE8x8,
+                    'loss':'telescopeMSE8x8',
                     'CNN_layer_nodes':filters,
                     'CNN_kernel_size':kernels,
                     'CNN_strides':strides,
@@ -323,28 +335,29 @@ class ECONT(TFKerasTrial):
         if not 'nBits_encod' in model['params'].keys():
             model['params'].update({'nBits_encod':nBits_encod})
 
-        if self.loss:
-            model['params']['loss'] = self.loss
-
         self.model = model
 
         # Create denseCNN model from the model parameters.
         m = denseCNN()
+        print("INITALIZTING MODEL WITTH PARAMETERS: ")
+        print(model['params'])
         m.setpams(model['params'])
         # The determined model and optimizer wraping is done in the model initaliztion
-        m.init(context=self.context)
+        m.init(wrap=True, context=self.context)
 
-        m_autoCNN , m_autoCNNen = m.get_models()
-        self.m = m_autoCNN
-        model['m_autoCNN'] = m_autoCNN
-        model['m_autoCNNen'] = m_autoCNNen
+        m_autoCNN, m_autoCNNen = m.get_models()
 
+        print(m_autoCNN.summary())
         return m_autoCNN
 
     def build_training_data_loader(self) -> InputData:
+        print("TRAIN X shape: " + str(self.x_train.shape))
+        print("TRAIN Y shape: " + str(self.y_train.shape))
         return self.x_train, self.y_train
 
     def build_validation_data_loader(self) -> InputData:
+        print("TEST X shape: " + str(self.x_test.shape))
+        print("TEST Y shape: " + str(self.y_test.shape))
         return self.x_test, self.y_test
 
     def download_data_from_s3(self):
@@ -369,9 +382,12 @@ class ECONT(TFKerasTrial):
 
     def download_dataset(self):
         self.dataloc = self.download_data_from_s3()
-        file = tarfile.open(os.path.join(self.dataloc,"data.tar.gz"))
+        self.args.inputFile = self.dataloc
+        filename = os.path.join(self.dataloc,"data.tar.gz")
+        file = tarfile.open(filename)
         file.extractall(self.dataloc)
         file.close()
+        os.remove(filename)
         #for root, dirs, files in os.walk(self.dataloc):
         #    for d in dirs:
         #        print(os.path.join(root, d))
@@ -417,14 +433,6 @@ class ECONT(TFKerasTrial):
             inputdata[:,arrMask==0]=0  #zeros out repeated entries
 
         shaped_data = inputdata.reshape(len(inputdata),shape[0],shape[1],shape[2])
-
-        if self.pams['n_copy']>0:
-            n_copy  = self.pams['n_copy']
-            occ_low = self.pams['occ_low']
-            occ_hi = self.pams['occ_hi']
-            shaped_data = self.cloneInput(shaped_data,n_copy,occ_low,occ_hi)
-
-        shaped_data
 
         test_input, train_input, val_ind, train_ind = split(shaped_data)
         self.x_train, self.y_train = train_input, train_input

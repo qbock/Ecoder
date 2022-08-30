@@ -2,7 +2,6 @@
 *png
 *~
 *pycache*
-log*
 
 .DS_Store
 .git*
@@ -16,5 +15,5 @@ data
 README.md
 ot_conda_packages.txt
 
-install_miniconda3.sh
 Miniconda3-latest-Linux-x86_64.sh
+install_miniconda3.sh

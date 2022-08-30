@@ -3,7 +3,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 import numpy as np
 import json
-from telescope import telescopeMSE2
+from telescope import telescopeMSE2, telescopeMSE8x8
 
 import tensorflow as tf
 import inspect
@@ -232,21 +232,25 @@ class denseCNN:
         return
 
     def wrapCompileModels(self, context):
-        opt = context.wrap_optimizer(self.pams['optimizer'])
+        adam = tf.keras.optimizers.Adam(learning_rate=1e-3)
+        opt = context.wrap_optimizer(adam)
 
-        print('Using optimizer', opt)
+        print('Using optimizer adam')
         if self.pams['loss']=="weightedMSE":
             context.wrap_model(self.autoencoder).compile(loss=self.weightedMSE, optimizer=opt)
-            context.wrap_model(self.encoder).compile(loss=self.weightedMSE, optimizer=opt)
+            # context.wrap_model(self.encoder).compile(loss=self.weightedMSE, optimizer=opt)
         elif self.pams['loss'] == 'telescopeMSE':
             context.wrap_model(self.autoencoder).compile(loss=telescopeMSE2, optimizer=opt)
-            context.wrap_model(self.encoder).compile(loss=telescopeMSE2, optimizer=opt)
+            # context.wrap_model(self.encoder).compile(loss=telescopeMSE2, optimizer=opt)
+        elif self.pams['loss'] == 'telescopeMSE8x8':
+            context.wrap_model(self.autoencoder).compile(loss=telescopeMSE8x8, optimizer=opt)
+            # context.wrap_model(self.encoder).compile(loss=telescopeMSE8x8, optimizer=opt)
         elif self.pams['loss']!='':
             context.wrap_model(self.autoencoder).compile(loss=self.pams['loss'], optimizer=opt)
-            context.wrap_model(self.encoder).compile(loss=self.pams['loss'], optimizer=opt)
+            # context.wrap_model(self.encoder).compile(loss=self.pams['loss'], optimizer=opt)
         else:
             context.wrap_model(self.autoencoder).compile(loss='mse', optimizer=opt)
-            context.wrap_model(self.encoder).compile(loss='mse', optimizer=opt)
+            # context.wrap_model(self.encoder).compile(loss='mse', optimizer=opt)
         return
 
 
