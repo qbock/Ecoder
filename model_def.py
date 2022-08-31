@@ -27,6 +27,8 @@ parser.add_argument("--epochs", type=int, default = 200, dest="epochs",
 parser.add_argument("--nELinks", type=int, default = 5, dest="nElinks",
                     help="n of active transceiver e-links eTX")
 
+parser.add_argument("--skipPlot", action='store_true', default=False, dest="skipPlot",
+                    help="skip the plotting step")
 parser.add_argument("--quickTrain", action='store_true', default = False,dest="quickTrain",
                     help="train w only 5k events for testing purposes")
 parser.add_argument("--retrain", action='store_true', default = False,dest="retrain",
@@ -66,17 +68,13 @@ parser.add_argument("--models", type=str, default="8x8_c8_S2_tele", dest="models
 
 def apply_constraints(context):
 
-    print("Applying constraints")
-
     # Look at hyperparameters for each CNN layers, if the number of filters in layer i is 0 then
     # subsequent layers and their hyperparameters are eliminated
     max_cnn_layers = context.get_hparam("max_cnn_layers")
     for i in range(1, max_cnn_layers+1):
         if context.get_hparam(f"filters{i}") == 0:
-            print("found non existant CNN layer")
             for j in range(i+1, max_cnn_layers+1):
                 if context.get_hparam(f"filters{j}") > 0:
-                    print("erroring for sucessive non zero CNN layer")
                     raise det.InvalidHP(
                         "Can't produce subqequent CNN layers after CNN layer with 0 filters")
 
@@ -84,10 +82,8 @@ def apply_constraints(context):
     max_dense_layers = context.get_hparam("max_dense_layers")
     for i in range(1, max_dense_layers+1):
         if context.get_hparam(f"dense{i}") == 15:
-            print("found non existant Dense layer")
-            for j in range(i+1, max_dense_layers):
+            for j in range(i+1, max_dense_layers+1):
                 if context.get_hparam(f"dense{j}") > 15:
-                    print("erroring for sucessive non zero Dense layer")
                     raise det.InvalidHP(
                         "Can't produce subqequent Dense layers after Dense layer with 0 filters")
 
@@ -97,9 +93,6 @@ def apply_constraints(context):
 
     for i in range(1, max_cnn_layers+1):
         reduction_factor /= context.get_hparam(f"stride{i}")
-        print(f"Reduction factor: {reduction_factor}")
-        print(context.get_hparam(f"maxpool{i}"))
-        print(type(context.get_hparam(f"maxpool{i}")))
         if context.get_hparam(f"maxpool{i}") == True:
             reduction_factor /= 2
 
@@ -108,12 +101,13 @@ def apply_constraints(context):
 
 
 class EMDCallback(keras.callbacks.Callback):
-    def __init__(self, args=None, data_values=None, phys_values=None, model=None, interval=10):
+    def __init__(self, args=None, data_values=None, phys_values=None, model=None, m=None, interval=10):
         super(keras.callbacks.Callback, self).__init__()
         self.args = args
         self.interval = interval
         self.data_values = data_values
-        self.model = model
+        self.model_dict = model
+        self.m = m
         self.phys_values = phys_values
 
     def on_epoch_end(self, epoch, logs={}):
@@ -168,7 +162,7 @@ class EMDCallback(keras.callbacks.Callback):
             _logger.info('inputQ shape')
             print(input_Q.shape)
             _logger.info('inputcalQ shape')
-            print(input_calQ.shape)
+            print(input_calQ.shape) 
 
             _logger.info('Restore normalization')
             input_Q_abs = np.array([input_Q[i]*(val_max[i] if self.args.rescaleInputToMax else val_sum[i]) for i in range(0,len(input_Q))]) * 35.   # restore abs input in CALQ unit
@@ -195,10 +189,10 @@ class EMDCallback(keras.callbacks.Callback):
                 'occupancy_1MT':occupancy_1MT
             }
 
-            perf_dict[self.model['label']] , self.model['summary_dict'] = evaluate_model(self.model,charges,aux_arrs,eval_dict,self.args)
+            perf_dict[self.model_dict['label']] , self.model_dict['summary_dict'] = evaluate_model(self.model_dict,charges,aux_arrs,eval_dict,self.args)
 
-            EMD = self.model['summary_dict']['EMD_ae']
-            EMD_error = self.model['summary_dict']['EMD_ae_err']
+            EMD = self.model_dict['summary_dict']['EMD_ae']
+            EMD_error = self.model_dict['summary_dict']['EMD_ae_err']
 
 
 class ECONT(TFKerasTrial):
@@ -230,7 +224,7 @@ class ECONT(TFKerasTrial):
             restore_best_weights=True,)
         callbacks.append(estop)
         print("Callback: EarlyStopping Enabled")
-        emd = EMDCallback(self.args,self.data_values,self.phys_values,self.model)
+        emd = EMDCallback(self.args,self.data_values,self.phys_values,self.model, self.m)
         print("Callback: EMD Enabled")
         callbacks.append(emd)
         return callbacks
@@ -253,20 +247,22 @@ class ECONT(TFKerasTrial):
             pooling = self.context.get_hparam(f"maxpool{i}")
             stride = self.context.get_hparam(f"stride{i}")
 
-            kernels.append(kernel_size)
-            filters.append(num_filter)
-            strides.append((stride, stride))
-            poolings.append(pooling)
-            paddings.append('same')
+            # Don't append parameters if the number of filters is zero
+            if num_filter:
+                kernels.append(kernel_size)
+                filters.append(num_filter)
+                strides.append((stride, stride))
+                poolings.append(pooling)
+                paddings.append('same')
 
-            names[0] = names[0] + f"c{num_filter}"
-            names[1] = names[1] + f"k{kernel_size}"
-            names[2] = names[2] + f"p{pooling}"
-            names[3] = names[3] + f"s{stride}"
-            labels[0] = labels[0] + f"c[{num_filter}]"
-            labels[1] = labels[1] + f"k[{kernel_size}]"
-            labels[2] = labels[2] + f"p[{pooling}]"
-            labels[3] = labels[3] + f"s[{stride}]"
+                names[0] = names[0] + f"c{num_filter}"
+                names[1] = names[1] + f"k{kernel_size}"
+                names[2] = names[2] + f"p{pooling}"
+                names[3] = names[3] + f"s{stride}"
+                labels[0] = labels[0] + f"c[{num_filter}]"
+                labels[1] = labels[1] + f"k[{kernel_size}]"
+                labels[2] = labels[2] + f"p[{pooling}]"
+                labels[3] = labels[3] + f"s[{stride}]"
 
         max_dense_layers = self.context.get_hparam("max_dense_layers")
 
@@ -276,10 +272,16 @@ class ECONT(TFKerasTrial):
         for i in range(1, max_dense_layers+1):
             num_units = self.context.get_hparam(f"dense{i}")
 
-            units.append(num_units)
+            # Don't append units if they are less than the encoding dim
+            if num_units < 16:
+                units.append(num_units)
 
-            names[4] = names[4] + f"c{num_units}"
-            labels[4] = labels[4] + f"c[{num_units}]"
+                names[4] = names[4] + f"c{num_units}"
+                labels[4] = labels[4] + f"c[{num_units}]"
+
+        # If there is no kernel size added, define one to use in default CNN layers
+        if not kernels:
+            kernels = [(3,3)]
 
         # Create names, labels, and initalize model parameters
         name = f'8x8{names[0]}{names[1]}{names[2]}{names[3]}{names[4]}tele'
@@ -335,19 +337,19 @@ class ECONT(TFKerasTrial):
         if not 'nBits_encod' in model['params'].keys():
             model['params'].update({'nBits_encod':nBits_encod})
 
-        self.model = model
-
         # Create denseCNN model from the model parameters.
         m = denseCNN()
-        print("INITALIZTING MODEL WITTH PARAMETERS: ")
-        print(model['params'])
         m.setpams(model['params'])
         # The determined model and optimizer wraping is done in the model initaliztion
         m.init(wrap=True, context=self.context)
 
         m_autoCNN, m_autoCNNen = m.get_models()
+        self.m = m
+        model['m_autoCNN'] = m_autoCNN
+        model['m_autoCNNen'] = m_autoCNNen
 
-        print(m_autoCNN.summary())
+        self.model = model
+
         return m_autoCNN
 
     def build_training_data_loader(self) -> InputData:

@@ -337,6 +337,9 @@ def evaluate_model(model,charges,aux_arrs,eval_dict,args):
 
     occupancy_1MT = aux_arrs['occupancy_1MT']
 
+    print("MODEL VERIFICATION 6:")
+    print(type(model))
+
     # visualize 2D activations
     if not model['isQK']:
         conv2d  = None
