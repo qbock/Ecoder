@@ -28,14 +28,14 @@ class plot():
             self.sc = self.ax.scatter(self.emd,self.ops)
             self.ax.set(xlim=(1, 3),
                 ylim=(1e3, 1e5))
-            plt.xlabel('error', fontsize=18)
+            plt.xlabel('EMD', fontsize=18)
             plt.ylabel('OPs', fontsize=16)
             plt.savefig('EMDvsOPS.jpg', dpi=1000)
         else:
             self.sc = self.ax.scatter(self.error,self.ops)
             self.ax.set(xlim=(0.3, 1.2),
                 ylim=(1e3, 1e5))
-            plt.xlabel('EMD', fontsize=18)
+            plt.xlabel('EMD error', fontsize=18)
             plt.ylabel('OPs', fontsize=16)
             plt.savefig('EMDvsOPS.jpg', dpi=1000)
 
