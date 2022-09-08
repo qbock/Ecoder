@@ -3,6 +3,7 @@
 *~
 *pycache*
 data
+access-keys
 log*
 comp_all
 Ax_optimization
