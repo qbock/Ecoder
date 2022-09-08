@@ -4,6 +4,7 @@
 *~
 *pycache*
 data
+access-keys
 log*
 comp_all
 .DS_Store
