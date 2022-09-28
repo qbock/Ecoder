@@ -1,5 +1,6 @@
 from xml.dom.minicompat import EmptyNodeList
 from xmlrpc.client import boolean
+from get_flops import get_flops_from_model
 import numpy as np
 import pandas as pd
 import os
@@ -91,6 +92,8 @@ parser.add_argument('--includeLR', action='store_true', default = False, dest="i
             help="Include learning rate in optimization")
 parser.add_argument('--includeBS', action='store_true', default = False, dest="includeBS",
             help="Include batch size in optimization")
+parser.add_argument('--threshold', type=int, default = 60000, dest="maxFlops",
+            help="maximum number of Flops to allow in a model")
 
 def save_plot(plot, name):
     data = plot[0]['data']
@@ -167,6 +170,13 @@ def train_eval(args, model, epochs):
     m_autoCNN , m_autoCNNen = m.get_models()
     model['m_autoCNN'] = m_autoCNN
     model['m_autoCNNen'] = m_autoCNNen
+
+    # Don't train the model and return a high EMD if the model is above the threshold for FLOPS
+    ops = get_flops_from_model(m_autoCNNen)
+
+    if ops > args.maxFlops:
+        _logger.info("Model exceeds the maximum number of Flops, returning high EMD and Error")
+        return {"EMD": 100, "EMD_error": 10}
 
     val_max = maxdata[val_ind]
     val_sum = sumdata[val_ind]
