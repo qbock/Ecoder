@@ -377,6 +377,20 @@ networks_by_name = [
          'CNN_kernel_size':[3],
          'CNN_strides':[(2,2)],
         },
+    },
+
+    {'name':'run5-1',
+         'label':'run5-1',
+     'arr_key':'8x8',
+     'params':{
+         'shape':(8,8,1),
+         'loss':get_emd_loss("app_mse"),
+         'CNN_layer_nodes':[8],
+         'CNN_kernel_size':[3],
+         'CNN_strides':[(2,2)],
+         'learning_rate': 0.59, 
+         'batch_size': 200
+        },
     }
 ]
 

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import os
 import json
+import copy
 
 from denseCNN import denseCNN
 from utils.logger import _logger
@@ -92,7 +93,9 @@ parser.add_argument('--includeLR', action='store_true', default = False, dest="i
             help="Include learning rate in optimization")
 parser.add_argument('--includeBS', action='store_true', default = False, dest="includeBS",
             help="Include batch size in optimization")
-parser.add_argument('--threshold', type=int, default = 60000, dest="maxFlops",
+parser.add_argument('--maxFLOPS', type=int, default = 30000, dest="maxFlops",
+            help="maximum number of Flops to allow in a model")
+parser.add_argument('--minFLOPS', type=int, default = 5000, dest="minFlops",
             help="maximum number of Flops to allow in a model")
 
 def save_plot(plot, name):
@@ -155,7 +158,9 @@ def train_eval(args, model, epochs):
     os.chdir(model['name'])
 
     with open('network.json', 'w') as file:
-        json.dump(model, file)
+        to_save = copy.copy(model)
+        del to_save['params']
+        json.dump(to_save, file)
 
     # train the model
     _logger.info("Model is a denseCNN")
@@ -174,8 +179,9 @@ def train_eval(args, model, epochs):
     # Don't train the model and return a high EMD if the model is above the threshold for FLOPS
     ops = get_flops_from_model(m_autoCNNen)
 
-    if ops > args.maxFlops:
-        _logger.info("Model exceeds the maximum number of Flops, returning high EMD and Error")
+    if ops > args.maxFlops or ops < args.minFlops:
+        os.chdir(orig_dir)
+        _logger.info("Model is outside Flops range, returning high EMD and Error")
         return {"EMD": 100, "EMD_error": 10}
 
     val_max = maxdata[val_ind]
@@ -306,6 +312,7 @@ def build_model(args, parameterization, cnn_layers, dense_layers, minBO):
     label = f'8x8{labels[0]}{labels[1]}{labels[2]}{labels[3]}{labels[4]}(tele)'
 
     # Check name to see if model has been trained already
+    print(f'CHECK WORKING DIR: {os.getcwd()}')
     for filename in os.listdir(args.odir):
         if filename == name:
             metric_dir = os.path.join(args.odir, filename, "metrics.json")
@@ -407,7 +414,7 @@ def main(args):
                                             "type": "choice",
                                             "is_ordered": True,
                                             "value_type": "int",
-                                            "values": [2,4,8,16,32,64]
+                                            "values": [4,8,16,32]
                         })
                         ax_parameters.append({"name": f"kernel_{i}",
                                             "type": "choice",
@@ -573,4 +580,4 @@ def main(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    main(args)
+    main(args) 

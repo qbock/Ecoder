@@ -72,7 +72,8 @@ class make_plots():
         self.sc.append(self.ax.scatter(baseline_x,baseline_y, marker='*', c='gold', label="baseline model"))
 
         x_lower = min(X)*0.8
-        x_upper = max(X)/2
+        # x_upper = max(X)/2
+        x_upper = 5
         self.ax.set(xlim=(x_lower, x_upper),
                 ylim=(1e3, 1e5))
         plt.legend(loc='upper right')
