@@ -186,3 +186,21 @@ Each row in the file represents a module but several rows can correspond to one 
 The output (and training) data from this last step (from the ECON-T simulation), can be found here:
 - ttbar: (neLinks 2-5 and no sim-Energy infomation) https://cernbox.cern.ch/index.php/s/YpAWu24aw6EaBk7
 - electron samples: (neLinks 2-5 with sim-Energy information) `/eos/uscms/store/user/dnoonan/AE_TrainingData/NewData/Skim/ele200PUData_TrainingData_SignalAllocation/`
+
+# Bayesian Optimization
+
+A Bayesian optiumization hyper-parameter search is built on top of the original repo using Facebook's Ax. 
+
+## Performing a hyperparameter search
+
+Performing a hyperparmeter search looks similar to command to train models but with extra flags:
+
+- `--opt_trials`: The number of the trials that the bayesian optimization tries during optimization
+- `--boEpochs`: The number of Epochs that each trial is trained for
+- `--maxCNNLayers`: The maximum number of CNN layers that can be included in the a trial model
+- `--maxDenseLayers`: The maximum number of dense layers that can be included in the a trial model
+- `--miniBO`: a boolean flag that when true (True is set as default) will perform a mixed grid search/Bayesian Optimization hyper parameter search
+- `--includeLR`: a boolean flag that when included includes the learning rate into the hyper parameter search
+- `--includeBS`: a boolean flag that when included includes the learning rate into the hyper parameter search
+- `--maxFLOPS`: a flag that allows the user to defined the maximum number of FLOPS a model can have to be considered in the search and fully trained
+- `--minFLOPS`: a flag that allows the user to defined the minimum number of FLOPS a model can have to be considered in the search and fully trained

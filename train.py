@@ -281,7 +281,9 @@ def train(autoencoder,encoder,train_input,train_target,val_input,name,n_epochs=1
     if train_weights != None:
         history = autoencoder.fit(train_input,train_target,sample_weight=train_weights,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
     else:
-        history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=500,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
+        print("waooooooooj")
+        print(train_input.shape)
+        history = autoencoder.fit(train_input,train_target,epochs=n_epochs,batch_size=1000,shuffle=True,validation_data=(val_input,val_input),callbacks=[es])
 
     plot_loss(history,name)
 

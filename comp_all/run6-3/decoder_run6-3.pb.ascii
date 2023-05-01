@@ -1,0 +1,1340 @@
+node {
+  name: "x"
+  op: "Placeholder"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "shape"
+    value {
+      shape {
+        dim {
+          size: -1
+        }
+        dim {
+          size: 16
+        }
+      }
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/MatMul/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 16
+          }
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/MatMul/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/dense_8/MatMul/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/MatMul"
+  op: "MatMul"
+  input: "x"
+  input: "decoder/dense_8/MatMul/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "transpose_a"
+    value {
+      b: false
+    }
+  }
+  attr {
+    key: "transpose_b"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/dense_8/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/BiasAdd"
+  op: "BiasAdd"
+  input: "decoder/dense_8/MatMul"
+  input: "decoder/dense_8/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "decoder/dense_8/Relu"
+  op: "Relu"
+  input: "decoder/dense_8/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/MatMul/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+          }
+          dim {
+            size: 128
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/MatMul/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/dense_9/MatMul/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/MatMul"
+  op: "MatMul"
+  input: "decoder/dense_8/Relu"
+  input: "decoder/dense_9/MatMul/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "transpose_a"
+    value {
+      b: false
+    }
+  }
+  attr {
+    key: "transpose_b"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 128
+          }
+        }
+        tensor_content: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/dense_9/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/BiasAdd"
+  op: "BiasAdd"
+  input: "decoder/dense_9/MatMul"
+  input: "decoder/dense_9/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "decoder/dense_9/Relu"
+  op: "Relu"
+  input: "decoder/dense_9/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Shape"
+  op: "Shape"
+  input: "decoder/dense_9/Relu"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/strided_slice/stack"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/strided_slice/stack_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/strided_slice/stack_2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/strided_slice"
+  op: "StridedSlice"
+  input: "decoder/reshape_5/Shape"
+  input: "decoder/reshape_5/strided_slice/stack"
+  input: "decoder/reshape_5/strided_slice/stack_1"
+  input: "decoder/reshape_5/strided_slice/stack_2"
+  attr {
+    key: "Index"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "begin_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "ellipsis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "end_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "new_axis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "shrink_axis_mask"
+    value {
+      i: 1
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Reshape/shape/1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Reshape/shape/2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Reshape/shape/3"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Reshape/shape"
+  op: "Pack"
+  input: "decoder/reshape_5/strided_slice"
+  input: "decoder/reshape_5/Reshape/shape/1"
+  input: "decoder/reshape_5/Reshape/shape/2"
+  input: "decoder/reshape_5/Reshape/shape/3"
+  attr {
+    key: "N"
+    value {
+      i: 4
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "axis"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "decoder/reshape_5/Reshape"
+  op: "Reshape"
+  input: "decoder/dense_9/Relu"
+  input: "decoder/reshape_5/Reshape/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/Shape"
+  op: "Shape"
+  input: "decoder/reshape_5/Reshape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/strided_slice/stack"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/strided_slice/stack_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/strided_slice/stack_2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/strided_slice"
+  op: "StridedSlice"
+  input: "decoder/conv2d_transpose_10/Shape"
+  input: "decoder/conv2d_transpose_10/strided_slice/stack"
+  input: "decoder/conv2d_transpose_10/strided_slice/stack_1"
+  input: "decoder/conv2d_transpose_10/strided_slice/stack_2"
+  attr {
+    key: "Index"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "begin_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "ellipsis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "end_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "new_axis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "shrink_axis_mask"
+    value {
+      i: 1
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/stack/1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/stack/2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/stack/3"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/stack"
+  op: "Pack"
+  input: "decoder/conv2d_transpose_10/strided_slice"
+  input: "decoder/conv2d_transpose_10/stack/1"
+  input: "decoder/conv2d_transpose_10/stack/2"
+  input: "decoder/conv2d_transpose_10/stack/3"
+  attr {
+    key: "N"
+    value {
+      i: 4
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "axis"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/conv2d_transpose/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 3
+          }
+          dim {
+            size: 3
+          }
+          dim {
+            size: 8
+          }
+          dim {
+            size: 8
+          }
+        }
+        tensor_content: "\270\007 =2~.>\276\217\250\275\344U\275\275\364H\010=\350\000\022>|\344\214\275\202\372\211\275\224\373\013>\337\007\t\276\352\350E>\000\"\311< \005\022>\210\251h=\310V\276=\270\257\331<\300,\333=<i+\276\210\350\327\274\220S\331<\336rA>t\211K\275\200s\366\273\340\004\276;\300\230$\276\010\305\245=x\005\\=\026p\017\276\314\177\r>\250\373\212\274\374\355\253=P\277\345\274\360c\001>\240\274\021\276<\022\316=H\200\026\276\222F\024>P{\002<\260q\230\274\326\0037>(\340\370<H\"\017=\324\326\351=xp\366=\210\0000>\3208x=\340j4>\346\352\002>\364\016 \276\304\024=>\034\213\245=v\355\350\2751\302\025\276\014\215l\275\340\234\256=p\227\207=(\230\353<\376\231\217\275\300\261\303=\320\346\351<\330!X==\231\014\276:\021G>\270\256\334<0\331v\274$kb\275\342\225\010>\330j\344<\224\346,>\000&\215\271\271\313P\276\007l\271\275p[\020>\340d\010>4\314\317=\345:\353\275\304U\001>T\303,=\260\365)>\3344\340=\314\\@\275Y\271\376\275\376\367\205\275\352z\017\276t\231\007\275\000\207m\273\200e\227\272D\267T\275 |I=h\336$>\034X\323=\200\242\237\275k\267@\276\310}p\275\261\346\253\275p\034\016<\266\024\021>\254\231\204=\000{\023\274b\314M>g\320\247\275<\305\345=\230 \320<\016i\024\276UdB\276\343\251\307\275 \267@=,\332\360=\250x\364<\001w\322\275\260\317\026>6\2323\276 \371\353\274D\026\214=T\324:=x\035\216<\350am= 6\320\273\207\332@\276\300Cv=\326\204M\276\224q\206\2752\3169\276\250|\016>X\243\366=\340=\355=\360_\332=X\341\013>W\237\024\276 \264\344\273\300\017\365=\364\207\'\276\320\274L\275x\\\323=P\347\236=\004E\347=T@\300=\2604\201=\024\360\030\275\252f\021>\020\036|=.<;>h\2351\276\3545\227\275\357-\025\276\272%\225\275N=1\276<\273\021>\024\323h\275\200\000\014\276\rr\370\2759Q\264\275(\331@\275 MD\275\177\032\363\275\tX\002\276\236\374->\312\233\036>\254\357\'>\300\034`\274\252\231I>\r\371\"\2764\353\022\276q\347\250\275+U*\276@s\024\276p\256\351\275P\324\337\274\350\241\252\275\372\377\376\275\034\342\024>\032j\036>\315U\314\275\256W7>\210\243:>d\021\372\275H\0035\276\230\336u=\026\275M>\330\310\221\274\234\362Z\275\013iO\276\000\317/>\372\370\002>#\020\023\276\240}1<\006\223\354\275-9O\276tJ\r>|L/=@iR=\014\030N>`S9\274\260\225\004>\224\n-\276`\367\330=\364L\223\275\351\275J\2764\027\017\275d\247M\275l\205\207\275fY\021\276\322\346\036>\214\200\202=\1776\302\275@\224s=d\323\035>\200P\001\276\\3\232=\200b\374<<\227H\276z\325C>L\035\035\276\240{\021\2764\033A\275\333\374%\276\350\0105=\240P\235=.\014O>$\020\373=i\273D\276\001\262\275\275L\243e\275x\022/\276\310\305\211\274H\016\224=\016\364\033\276\025\210F\276\334^`\275\323\315\360\275\250\013z\275@\217k;\214B\330=\030\273;\275x\346H>.T\007>\250\223\n\276 \222R\275\245LO\276\3253\030\276\020\005+=\360\301f\275W\331;\276XK >\312\264@\276\343\363%\276\240\020\350\275\231\037\327\275\310b\351=\346w;\276\204C\"\275\226\032\005>8L\365=\216\013A\276h\272\212=\256\275\033>h\216\333=p$\010\276\030p\267\274\000\275\347:\340\000\316=\270S\355=@{\227\275[9\023\276\340\217\002<\352\305?>l\302\001\276\204\033%>\364n$>l!\213=X\351\310=\210b\355\274\374<C>\010\000*=\244\310@>u(\350\275\220\242]=\244\253\267=#\345\375\275\020}\262\275X\"\332<=\316\257\275\324\260\207=\3328?>\330\025\211\275d~\305\275~\265\344\275\3563B\276lM\205=\000\3769;\314\202\300=\250\033L=\000\331};\227fL\2768;\n\275\350\205\315<\020\336K=\230\373\255\274\214\311;>\020d\002\275hcN\276\270\311&=8e\000>\320\375#<Fy >C\234\025\276<2\202\275\\\242\276=d\303\336\275\020l\017=\365\3764\276\200\345\353=R\310\245\275\216,L>(2\033=\020$\307=`l\347\274\360\370\243=\177\027O\276p`D\276\314tJ>\220\300^<\0208j\274,w\271=\234\375g\275\360\323~=\322\333\243\2759\204M\276\304\265\337=:\322\353\275\t\204\303\275\021\333?\2760R\034\275b\335\205\275\252\204\001\276\003\035\022\276~\306!>|\221K\2760\021\357=\250\365\270=\200Kv\275\035\321;\276\300\221\003\276@\002\020<\\.\246=\3140\230=P\004:<\366\010\353\275\"\254\265\275(\203\035>4\234\022=\247\346\347\2750\332\207\275<\345\276\275\3442\020\275\300\266\271<`\257<=e]\275\275\n8\375\275b\205\000>\300\326\312\273H\303\037=\360C\327=\203\371\270\275\220\303I\276\214\257\221\275(\221\245<\260#\322<\200\007v<\026\333/>\000\264O9*\3051>Xs\'\275\332~M\2760#\007<DT\227=@9S\273\211G\315\275\034\312\r>\270\017\325\274\000\242\265=\240h.\276\366Y\'>\340\314\273\275p\244p<t\275\257=H\325\006>@\350B>\030\216N\276\370T6\275\202\372%\276\200\020\335=\314_\037>D\262\t\276\376t\r>D\374\313\275\330\353.=\014\3575>`kn=x\322\225=D\370\033=P\207`=\240\323\207<\260\267\274<`r9\274\030\016\356\2748\221\247=\021\023P\2764\023\357=\000\353\355\275p,\002\275\246\r \276\320<\313<\354!\247=\260\217\037\275Xe\313=\0346q\275\236\020\320\275L\006\222=\275\016\025\276.\306)>l\2037\275\234\024\326=\313`7\276`%\006>\000\326@\275\366\032>>@\362S\274\350\277\231\275\"Q\017\276\250\036\027>\3403<=l\tP>\310\263!>(\316(\276\270\261\377<\030I\013>P\324.=\320\216\253=\210\217\014\276p?\307\2758\360;>\014\341/=\036%4>b\2426>A\227*\276\200b\246\274x\241\003>\036\323\014\276h\360\204<\\;\341\275,^\'\276 \315\"\276 \223\323;\306\3474>(\030D=x\254\300<\320\207\247\274\\\245\003>\010\307\035>\030\277\037=\320|\214=\324%2\275h\216\"\276T\230\004\276\200\275\252\274\240\330M>bX\">4~\020\275\340|\334=\002B\221\2758b\031>\320\257\242=\360\027\250<o;/\276*\372\016\276\244u\027=0\222}=t\361H>\232\243\000>\020<\262<\364\312\253=\242\211\010\276\350\302\240=\234\211\021>\360\341K\274\'\250\354\275X=\233<\364\212\357=\240\035\246;\375v/\276\310-\200<4\317H>\274\226\236=\360\214[=\326\000\034>\230\203P=\230o\332<\233N\336\275\240\321\230; \306<>\250\247\030>x\200\344\274\300\214\261;,\326\235\275\260io\274\207)\r\276\374\262P\276\270\333\006=\220J\017\274\240\267\256\273B37>\250\033%\276K\007&\276\360\227\231\274\234\234^\275\260O\255=\271e\"\276<\3352>\377u\t\276\\S\370=0\337#<7\244\312\275\\\276 \276\247\327\257\275\002N\342\275M\257\317\275$&\031\276\314\324\035>g\332H\276\003\310\001\2764\364=\2768\007\363\274<\376A\276P\310\376<\203\375M\276|y\322=\217O\022\276\274o\022>\214z\n>\344\211\243=@*\244\273\000\322\360\274z0\267\275\320\0328>\207j\255\275r\370\005\276 `\355;^4\017\276\205\345\253\275\372\222\016>X&}=\266\224\024>\2403\246;<\375L>%Q\025\276D\240\257=`\374\234<\210\206\321\274\330| >\004\375\307=X\351b=\360sL=\200}\327=\274\037>\276\000T.\271 \256\006\276\246\240\025>Z\272\304\275\234b\234=@\010B=h\365\244<\241\332\316\275\360aX=\010g\266<x\262,>"
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/conv2d_transpose/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/conv2d_transpose_10/conv2d_transpose/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/conv2d_transpose"
+  op: "Conv2DBackpropInput"
+  input: "decoder/conv2d_transpose_10/stack"
+  input: "decoder/conv2d_transpose_10/conv2d_transpose/ReadVariableOp"
+  input: "decoder/reshape_5/Reshape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+  attr {
+    key: "dilations"
+    value {
+      list {
+        i: 1
+        i: 1
+        i: 1
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "explicit_paddings"
+    value {
+      list {
+      }
+    }
+  }
+  attr {
+    key: "padding"
+    value {
+      s: "SAME"
+    }
+  }
+  attr {
+    key: "strides"
+    value {
+      list {
+        i: 1
+        i: 2
+        i: 2
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "use_cudnn_on_gpu"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 8
+          }
+        }
+        tensor_content: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/conv2d_transpose_10/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/BiasAdd"
+  op: "BiasAdd"
+  input: "decoder/conv2d_transpose_10/conv2d_transpose"
+  input: "decoder/conv2d_transpose_10/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_10/Relu"
+  op: "Relu"
+  input: "decoder/conv2d_transpose_10/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/Shape"
+  op: "Shape"
+  input: "decoder/conv2d_transpose_10/Relu"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/strided_slice/stack"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/strided_slice/stack_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/strided_slice/stack_2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/strided_slice"
+  op: "StridedSlice"
+  input: "decoder/conv2d_transpose_11/Shape"
+  input: "decoder/conv2d_transpose_11/strided_slice/stack"
+  input: "decoder/conv2d_transpose_11/strided_slice/stack_1"
+  input: "decoder/conv2d_transpose_11/strided_slice/stack_2"
+  attr {
+    key: "Index"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "begin_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "ellipsis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "end_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "new_axis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "shrink_axis_mask"
+    value {
+      i: 1
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/stack/1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/stack/2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 8
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/stack/3"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/stack"
+  op: "Pack"
+  input: "decoder/conv2d_transpose_11/strided_slice"
+  input: "decoder/conv2d_transpose_11/stack/1"
+  input: "decoder/conv2d_transpose_11/stack/2"
+  input: "decoder/conv2d_transpose_11/stack/3"
+  attr {
+    key: "N"
+    value {
+      i: 4
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "axis"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/conv2d_transpose/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 3
+          }
+          dim {
+            size: 3
+          }
+          dim {
+            size: 1
+          }
+          dim {
+            size: 8
+          }
+        }
+        tensor_content: "\352c\377\275\346C\211>a\365\201\276F\036e\276\230\226Z\275X\351o>Zk\017>\360\"\017\276 @\364=\300\320\206\274l\220Q\276\324\361\">\236\0209>\000@\311:x%\026\275\340\226~\274@\203f\274\274\3176>b6\022\276\230\333\'=r\350\337\275\304\\\310=\344\336\346=\220\201\006=\310\000/><U\360=27\213\275\220m\261<\220\033\247=518\276\330V~=f\266\375\275\240\353\333<-\350H\276\320{\250\274\304\347k\275\300\324q\275 ^?<\374\033\'>\360\004\373\275)\367\003\276e\277\210\2766\213\313\275<\307\206\276\00421>\n\205\354\275\264\3345\275|\031T\276R\031\200\276\332U0>\240\352\355=\270\372\231=\264\210\212>0\0022\276\332\024\356\275\254\274,\276\360\233\210>\023\232\032\276%\037w\276(E\207=\324<\240=8\014:\276\260\003\032>00\024>\010\205M>0/_>PV\203\275\342EU>\000\376\225=\363|\177\276\370\237<\276`r\216\274"
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/conv2d_transpose/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/conv2d_transpose_11/conv2d_transpose/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/conv2d_transpose"
+  op: "Conv2DBackpropInput"
+  input: "decoder/conv2d_transpose_11/stack"
+  input: "decoder/conv2d_transpose_11/conv2d_transpose/ReadVariableOp"
+  input: "decoder/conv2d_transpose_10/Relu"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+  attr {
+    key: "dilations"
+    value {
+      list {
+        i: 1
+        i: 1
+        i: 1
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "explicit_paddings"
+    value {
+      list {
+      }
+    }
+  }
+  attr {
+    key: "padding"
+    value {
+      s: "SAME"
+    }
+  }
+  attr {
+    key: "strides"
+    value {
+      list {
+        i: 1
+        i: 1
+        i: 1
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "use_cudnn_on_gpu"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        float_val: -3.6272268295288086
+      }
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "decoder/conv2d_transpose_11/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "decoder/conv2d_transpose_11/BiasAdd"
+  op: "BiasAdd"
+  input: "decoder/conv2d_transpose_11/conv2d_transpose"
+  input: "decoder/conv2d_transpose_11/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "decoder/decoder_output/Sigmoid"
+  op: "Sigmoid"
+  input: "decoder/conv2d_transpose_11/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "NoOp"
+  op: "NoOp"
+  input: "^decoder/conv2d_transpose_10/BiasAdd/ReadVariableOp"
+  input: "^decoder/conv2d_transpose_10/conv2d_transpose/ReadVariableOp"
+  input: "^decoder/conv2d_transpose_11/BiasAdd/ReadVariableOp"
+  input: "^decoder/conv2d_transpose_11/conv2d_transpose/ReadVariableOp"
+  input: "^decoder/dense_8/BiasAdd/ReadVariableOp"
+  input: "^decoder/dense_8/MatMul/ReadVariableOp"
+  input: "^decoder/dense_9/BiasAdd/ReadVariableOp"
+  input: "^decoder/dense_9/MatMul/ReadVariableOp"
+  attr {
+    key: "_acd_function_control_output"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "Identity"
+  op: "Identity"
+  input: "decoder/decoder_output/Sigmoid"
+  input: "^NoOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+versions {
+  producer: 1087
+}

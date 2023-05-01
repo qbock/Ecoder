@@ -1,0 +1,515 @@
+node {
+  name: "x"
+  op: "Placeholder"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "shape"
+    value {
+      shape {
+        dim {
+          size: -1
+        }
+        dim {
+          size: 8
+        }
+        dim {
+          size: 8
+        }
+        dim {
+          size: 1
+        }
+      }
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/Conv2D/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 3
+          }
+          dim {
+            size: 3
+          }
+          dim {
+            size: 1
+          }
+          dim {
+            size: 8
+          }
+        }
+        tensor_content: "LT\027>\222\344Z\276\225xG\276J\024\202>T+Z>\300\242\204\273z3!\276\330S$\276\006\231\262\275\311DD\276\344m\202>X\014\201=\246\010O>\200SH;\220\373(\275\340 B\274\354T\204=\246\254\254\275\300\372\266=\220I(>z\326\016>\246\324{\276\324\316\260\275y\335_\276@\003\267<(aX>\2000\274\275\274\322\273=\000\214/;*\':>\310\\\'\275 \247\006\275PpF\276\310\201\202\276\212v\205\275\000\217\262\274\340\344\355< \201g<\334G\315=\200\302K\275\344\357^\276c\205I\276\350:\316\275\364{;>\340\3122\276R\204\207>\304L\316=H\376\366\275\320\232\253=\254\206B\276l\253\254\275\244\224\357=T\244y\276p6\247=\260\210y\276\204\033\024>J\326\032\276\000\336S\274\004\215Y>\367\205I\276\324o9>(\326A\276\020\325\237=f\262#>\017\2502\276?\017\201\276\224\007D\275\212\362+> \000f>2\031\033\276\300\356\t<t2\334\275"
+      }
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/Conv2D/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/conv2d_5/Conv2D/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/Conv2D"
+  op: "Conv2D"
+  input: "x"
+  input: "encoder/conv2d_5/Conv2D/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+  attr {
+    key: "dilations"
+    value {
+      list {
+        i: 1
+        i: 1
+        i: 1
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "explicit_paddings"
+    value {
+      list {
+      }
+    }
+  }
+  attr {
+    key: "padding"
+    value {
+      s: "SAME"
+    }
+  }
+  attr {
+    key: "strides"
+    value {
+      list {
+        i: 1
+        i: 2
+        i: 2
+        i: 1
+      }
+    }
+  }
+  attr {
+    key: "use_cudnn_on_gpu"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 8
+          }
+        }
+        tensor_content: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/conv2d_5/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/BiasAdd"
+  op: "BiasAdd"
+  input: "encoder/conv2d_5/Conv2D"
+  input: "encoder/conv2d_5/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "encoder/conv2d_5/Relu"
+  op: "Relu"
+  input: "encoder/conv2d_5/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/flatten_5/Const"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 2
+          }
+        }
+        tensor_content: "\377\377\377\377\200\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "encoder/flatten_5/Reshape"
+  op: "Reshape"
+  input: "encoder/conv2d_5/Relu"
+  input: "encoder/flatten_5/Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/MatMul/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 128
+          }
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/MatMul/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/dense_7/MatMul/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/MatMul"
+  op: "MatMul"
+  input: "encoder/flatten_5/Reshape"
+  input: "encoder/dense_7/MatMul/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "transpose_a"
+    value {
+      b: false
+    }
+  }
+  attr {
+    key: "transpose_b"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/dense_7/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/BiasAdd"
+  op: "BiasAdd"
+  input: "encoder/dense_7/MatMul"
+  input: "encoder/dense_7/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "encoder/dense_7/Relu"
+  op: "Relu"
+  input: "encoder/dense_7/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/MatMul/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+          }
+          dim {
+            size: 16
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/MatMul/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/encoded_vector/MatMul/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/MatMul"
+  op: "MatMul"
+  input: "encoder/dense_7/Relu"
+  input: "encoder/encoded_vector/MatMul/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "transpose_a"
+    value {
+      b: false
+    }
+  }
+  attr {
+    key: "transpose_b"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/BiasAdd/ReadVariableOp/resource"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+          dim {
+            size: 16
+          }
+        }
+        tensor_content: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/BiasAdd/ReadVariableOp"
+  op: "Identity"
+  input: "encoder/encoded_vector/BiasAdd/ReadVariableOp/resource"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/BiasAdd"
+  op: "BiasAdd"
+  input: "encoder/encoded_vector/MatMul"
+  input: "encoder/encoded_vector/BiasAdd/ReadVariableOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "data_format"
+    value {
+      s: "NHWC"
+    }
+  }
+}
+node {
+  name: "encoder/encoded_vector/Relu"
+  op: "Relu"
+  input: "encoder/encoded_vector/BiasAdd"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "NoOp"
+  op: "NoOp"
+  input: "^encoder/conv2d_5/BiasAdd/ReadVariableOp"
+  input: "^encoder/conv2d_5/Conv2D/ReadVariableOp"
+  input: "^encoder/dense_7/BiasAdd/ReadVariableOp"
+  input: "^encoder/dense_7/MatMul/ReadVariableOp"
+  input: "^encoder/encoded_vector/BiasAdd/ReadVariableOp"
+  input: "^encoder/encoded_vector/MatMul/ReadVariableOp"
+  attr {
+    key: "_acd_function_control_output"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "Identity"
+  op: "Identity"
+  input: "encoder/encoded_vector/Relu"
+  input: "^NoOp"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+versions {
+  producer: 1087
+}

@@ -391,7 +391,324 @@ networks_by_name = [
          'learning_rate': 0.59, 
          'batch_size': 200
         },
-    }
+    },
+
+    # Pareto front models
+    # Run 3 models
+
+    {'name':'run3-1',
+     'label':'run3-1',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [], 
+        'CNN_padding': [], 
+        'CNN_pool': [], 
+        'Dense_layer_nodes': [16], 
+        'learning_rate': 0.018, 
+        'batch_size': 50
+        },  
+    }, 
+
+    {'name':'run3-2',
+     'label':'run3-2',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [], 
+        'CNN_padding': [], 
+        'CNN_pool': [], 
+        'Dense_layer_nodes': [64], 
+        'learning_rate': 0.015, 
+        'batch_size': 400
+        },
+    },
+
+    {'name':'run3-3',
+     'label':'run3-3',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [], 
+        'CNN_padding': [], 
+        'CNN_pool': [], 
+        'Dense_layer_nodes': [16], 
+        'learning_rate': 0.1, 
+        'batch_size': 400
+        },
+    },
+
+    {'name':'run3-4',
+     'label':'run3-4',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': [], 
+        'CNN_pool': [True], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.0207, 
+        'batch_size': 150
+        },
+    },
+
+    # Run 4
+         
+    {'name':'run4-1',
+     'label':'run4-1 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [16], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [True], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.0012, 
+        'batch_size': 50
+        },
+    },
+
+    {'name':'run4-2',
+     'label':'run4-2 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [16], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [True], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.066, 
+        'batch_size': 100
+        },
+    },
+
+    {'name':'run4-3',
+     'label':'run4-3 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'Dense_layer_nodes': [32], 
+        'learning_rate': 0.039, 
+        'batch_size': 200
+        },
+    },
+
+    {'name':'run4-4',
+     'label':'run4-4 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'Dense_layer_nodes': [16], 
+        'learning_rate': 0.021, 
+        'batch_size': 200
+        },
+    },
+
+    {'name':'run4-5',
+     'label':'run4-5 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'Dense_layer_nodes': [64], 
+        'learning_rate': 0.079, 
+        'batch_size': 200
+        },
+    },
+
+    # Run 5
+
+    {'name':'run5-1',
+     'label':'run5-1 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [(4,4)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.084, 
+        'batch_size': 250
+        },
+    },
+
+    {'name':'run5-2',
+     'label':'run5-2 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [32], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.011, 
+        'batch_size': 250
+        },
+    },
+
+    {'name':'run5-3',
+     'label':'run5-3 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [32], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(4,4)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.027, 
+        'batch_size': 400
+        },
+    },
+
+    {'name':'run5-4',
+     'label':'run5-4 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [32], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.028, 
+        'batch_size': 400
+        },
+    },
+
+    {'name':'run5-5',
+     'label':'run5-5 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(4,4)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [16], 
+        'learning_rate': 0.047, 
+        'batch_size': 250
+        },
+    },
+
+    {'name':'run5-6',
+     'label':'run5-6 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(4,4)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [32], 
+        'learning_rate': 0.47, 
+        'batch_size': 200
+        },
+    },
+
+    # Run 6
+
+    {'name':'run6-1',
+     'label':'run6-1 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [16], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.05, 
+        'batch_size': 150
+        },
+    },
+
+    {'name':'run6-2',
+     'label':'run6-2 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [5], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [], 
+        'learning_rate': 0.05, 
+        'batch_size': 150
+        },
+    },
+
+    {'name':'run6-3',
+     'label':'run6-3 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [8], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [0], 
+        'learning_rate': 0.59, 
+        'batch_size': 200
+        },
+    },
+
+    {'name':'run6-4',
+     'label':'run6-4 ',
+     'arr_key':'8x8',
+     'params': {
+        'shape': (8, 8, 1), 
+        'loss':get_emd_loss("app_mse"),
+        'CNN_layer_nodes': [4], 
+        'CNN_kernel_size': [3], 
+        'CNN_strides': [(2,2)], 
+        'CNN_padding': ['same'], 
+        'CNN_pool': [False], 
+        'Dense_layer_nodes': [32,16], 
+        'learning_rate': 0.015, 
+        'batch_size': 100
+        },
+    },
 ]
 
 defaults = {'channels_first': False,
